@@ -1,2 +1,2 @@
 # moobench
-Multiobjective optimization with constraints benchmarks
+Benchmark problems for multiobjective optimization with constraints 
