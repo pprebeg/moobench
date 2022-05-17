@@ -156,12 +156,12 @@ class DesignVariable(ABC):
 
     @property
     def status(self):
-        curval = self.value
+        curval = self.value #current value?
         if self.lower_bound > curval:
-            return ' lb --'
+            return ' lb --'                     #izlazi su doslovce ovi stringovi - korisnik mora znati kaj znace
         elif self.upper_bound < curval:
             return ' ub --'
-        elif np.isclose(curval,self.lower_bound):
+        elif np.isclose(curval,self.lower_bound):   #numpy funkcija ako su dva broja unutar tolerancije slicna - ili nizove more usporedjivati, element po element
             return ' lb'
         elif np.isclose(curval,self.upper_bound):
             return ' ub'
@@ -203,16 +203,16 @@ class DesignCriteria(ABC):
     def get_info(self):
         return self.name+' = '+ str(self.origin_value)
 
-class DesignObjective(DesignCriteria):
+class DesignObjective(DesignCriteria):                      #vjerojatno funkcija cilja, nasljedjuje kriterij? 
     def __init__(self,name,connector:BasicGetConnector):
-        super(DesignObjective, self).__init__(name,connector)
+        super(DesignObjective, self).__init__(name,connector)   
         pass
 
 class DesignConstraint(DesignCriteria):
     def __init__(self,name,connector:BasicGetConnector,rhs:float=0.0,con_type:ConstrType = ConstrType.GT):
         super(DesignConstraint, self).__init__(name,connector)
-        self._con_type = con_type
-        self._rhs = rhs
+        self._con_type = con_type #kakav je constraint, jednakost ili nejednakost, defaultni je greater then ocito
+        self._rhs = rhs           #rhs je right hand side - ona vrijednost s desne strane jednakosti ili nejednakosti.
         pass
 
     @property
@@ -232,8 +232,8 @@ class DesignConstraint(DesignCriteria):
     @property
     def value_gt_0(self):
         if self.con_type == ConstrType.LT:
-            return -self.value + self.rhs
-        else:
+            return -self.value + self.rhs   # u ovoj se formi moraju napisati funkcije koje vracaju vrijednosti za ogranicenja
+        else:                               #scipy samo na jedan nacin to moze primati, samo kao greater than vjerojatno, a ovo omogucuje i less than definiciju
             return self.value - self.rhs
         return
 
@@ -282,19 +282,19 @@ class OptimizationProblemSolution():
         self._cons = np.zeros(num_constr)
 
     @property
-    def dvs(self):
+    def dvs(self):              #design variable solutions
         return self._dvs
 
     @property
-    def objs(self):
+    def objs(self):             #objective function solutions
         return self._objs
 
     @property
-    def cons(self):
+    def cons(self):             #constraints
         return self._cons
 
     def get_variable_value(self,ix:int):
-        return self._dvs[ix]
+        return self._dvs[ix]    #vracanje vrijednosti odredjene design variable
     def set_variable_value(self,ix:int,value):
         self._dvs[ix] = value
 
@@ -308,7 +308,7 @@ class OptimizationProblemSolution():
     def set_con_value(self,ix:int,value):
         self._cons[ix] = value
 
-    def set_criteria_to_nan(self):
+    def set_criteria_to_nan(self):          #IEEE 754 floating point reprezentacija matematickog pojma NAN - neodredjeno 0/0 npr.
         self._objs[:] = np.nan
         self._cons[:] = np.nan
 
@@ -318,7 +318,7 @@ class OptimizationAlgorithm(ABC):
 
     @property
     @abstractmethod
-    def sol(self):
+    def sol(self):      #abstraktne metode moraju biti implementirane u klasama koje nasljedjuju od ove. 
         pass
 
     @abstractmethod
