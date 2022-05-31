@@ -1,4 +1,4 @@
-import numpy as np                      'optlib_scipy je zapravo sucelje izmedju modela i scipy-ja.. optbase kojim se koristi ima neke osnovne klase, funkcije, ajmo rec postavljen princip, a onda ovaj modul to prilagodjava scipyu
+import numpy as np                      #optlib_scipy je zapravo sucelje izmedju modela i scipy-ja.. optbase kojim se koristi ima neke osnovne klase, funkcije, ajmo rec postavljen princip, a onda ovaj modul to prilagodjava scipyu
 from abc import ABC,abstractmethod
 from typing import List, Dict
 from enum import Enum
@@ -29,7 +29,7 @@ class ScipyModelAnalysis():
         self._rtol = 1e-10                      #postavljanje tolerancija za granice izgleda, vidi klasu DesignConstraint, property status
         self._atol = self._rtol * 1e-3
         self._xlast:np.ndarray = None           #to je samo najavljeno numpy niz.. ali je None
-        self._calback_analyse_method = calback_analyse #kaj je ovo? 
+        self._calback_analyse_method = calback_analyse #funkcija ili metoda koja se kao callback salje 
 
     def init_analysis(self,num_var):
         self._xlast: np.ndarray = np.ones(num_var)*np.random.random() #random odabir pocetnih vrijednosti problema, design varijabli
@@ -41,7 +41,7 @@ class ScipyModelAnalysis():
 
     def analyse(self,x:np.ndarray):
         if self._is_new_x_vals(x):      #jako sazet kod - tak bi i ja trebal svoj stari kod promijenit, za sve postoji funkcija
-            self._calback_analyse_method(x) # di je ta metoda definirana? izgleda kao varijabla gore u init-u
+            self._calback_analyse_method(x) # Callback metoda koja se poziva. 
             self._xlast[:]=x[:]         #ovo bi vjerojatno znacilo - stari postaju novi
         pass
 
@@ -53,6 +53,7 @@ class ScipyVariable():
 
     def get_bounds(self):
         return self._dv.get_bounds()
+    
     @property
     def value(self):
         return self._dv.origin_value
@@ -187,20 +188,21 @@ class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
             consdata.append(spcon.get_constraint_data_scipy())
         return consdata
 
-    def optimize(self,desvars: List[DesignVariable],
+    def optimize(self,desvars: List[DesignVariable], #ova se override-ana? metoda zove zapravo iz OptimizationProblem tipa objekta.. šalju se svi propertyji redom kao ovdje što se ocekuju, a zadnja dva su callback funkcije a to su tamo: self.evaluate i self.get_curren_sol
                  constraints: List[DesignConstraint],
                  objectives: List[DesignObjective],
                  x0:np.ndarray,
-                 (calback_evaluate,calback_get_curren_solution) -> List[OptimizationProblemSolution]: #pazi ovaj nacin dodjele - lista OptimizationProblemSolution tipa
-        (objfun,consdata,bnds) = self._generate_scipy_problem(desvars, #tu se izgleda poziva generate scipy problem? a ta funkcija naravno vraca (objfun, consdata, bnds) upravo tim redom 
-                 constraints, objectives, calback_evaluate)
+                 calback_evaluate, calback_get_curren_solution) -> List[OptimizationProblemSolution]: #bilo je ovaak (calback_evaluate,calback_get_curren_solution) -> List[OptimizationProblemSolution]:
+        
+        (objfun,consdata,bnds) = self._generate_scipy_problem(desvars, constraints, objectives, calback_evaluate)  #tu se poziva generate_scipy_problem metoda kao arugment callback funkcije, to se poziva odmah! - ta funkcija naravno vraca (objfun, consdata, bnds) upravo tim redom 
+                                                                                                                    #calback_evaluate i calback_get_current_solution su callback funkcije, i ne izvršavaju se odmah, vec se pozivaju kasnije(objfun,consdata,bnds) ce biti
 
         if self._method == 'SLSQP':
             sol = minimize(objfun, x0, constraints=consdata, method=self._method,options=self._options, bounds=bnds) #implementiran konacan poziv x0 su pocetne vrijednosti design varijable
         elif self._method == 'COBYLA':
             sol = minimize(objfun, x0, constraints=consdata, method=self._method,options=self._options)
         self._sol=sol                               #rjesenje se sprema u privatnu _sol varijablu, postoji property posto je privatna ._sol
-        opt_sol = calback_get_curren_solution()
+        opt_sol = calback_get_curren_solution()     #dihvaca posebno sadasnje rjesenje... ovaj callback zapravo
         solutions:List[OptimizationProblemSolution] = [] #valjda onaj history rjesenja? 
         solutions.append(opt_sol)
         return solutions                                    #lista rjesenja? 
