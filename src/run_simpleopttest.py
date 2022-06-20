@@ -29,8 +29,8 @@ if __name__ == '__main__': #ako smo pokrenuli baš ovaj fajl, a ne ga pozvali iz
 
     am= EX_16_4_AnayisisModel() #am je analysis model! Pokazivac na objekt modela kreiranog ovdje! 
     op = OptimizationProblem()
-    op.add_design_varible(DesignVariable('x1',NdArrayGetSetConnector(am.inarray,0),0.0, None))      #dodavanje dizajnerske varijable putem metode add_design_variable (lapsus calami), instanciranje DesignVariable, u kreiranu DesignVariable sprema novokreirani objekt konektora
-    op.add_design_varible(DesignVariable('x2',NdArrayGetSetConnector(am.inarray, 1), 0.0, None))    #govori zapravo da je varijabla x1 ili x2, spremljena u am.inarrayu na mjestu 0 ili 1... Olakšava nama razumijevanje kaj je kaj.. 
+    op.add_design_variable(DesignVariable('x1',NdArrayGetSetConnector(am.inarray,0),0.0, None))      #dodavanje dizajnerske varijable putem metode add_design_variable (lapsus calami), instanciranje DesignVariable, u kreiranu DesignVariable sprema novokreirani objekt konektora
+    op.add_design_variable(DesignVariable('x2',NdArrayGetSetConnector(am.inarray, 1), 0.0, None))    #govori zapravo da je varijabla x1 ili x2, spremljena u am.inarrayu na mjestu 0 ili 1... Olakšava nama razumijevanje kaj je kaj.. 
     op.add_objective(DesignObjective('obj',NdArrayGetConnector(am.outarray,0)))                     #jedna je funkcija cilja.. VAZNO.. u argumentu odmah poziva instanciranje objekta.. bilo DesignVariable, bilo nekog drugog, pa ga pomocu ovih add metoda dodaje u listu vlastitih propertyja
     op.add_constraint(DesignConstraint('g1',NdArrayGetConnector(am.outarray,1), -2.0))              #tri su ogranicenja, pogledati kak se definira jesu li 
     op.add_constraint(DesignConstraint('g2',NdArrayGetConnector(am.outarray, 2), -6.0))             #tri argumenta - prvi je ime, drugi je konektor, treæi je vrijednost ogranièenja s desne strane

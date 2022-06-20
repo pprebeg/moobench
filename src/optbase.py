@@ -152,7 +152,7 @@ class DesignVariable(ABC):
         self._origin.value = value
 
     def get_bounds(self):
-        return self.lower_bound, self.upper_bound
+        return self.lower_bound, self.upper_bound #ovo vraca tuple
 
     @property
     def status(self):
@@ -234,6 +234,14 @@ class DesignConstraint(DesignCriteria):
         if self.con_type == ConstrType.LT:
             return -self.value + self.rhs   # u ovoj se formi moraju napisati funkcije koje vracaju vrijednosti za ogranicenja
         else:                               #scipy samo na jedan nacin to moze primati, samo kao greater than vjerojatno, a ovo omogucuje i less than definiciju
+            return self.value - self.rhs
+        return
+
+    @property
+    def value_lt_0(self):                   #ovo je za PYMOO dodano.. 
+        if self.con_type == ConstrType.GT:
+            return -self.value + self.rhs   
+        else:                               
             return self.value - self.rhs
         return
 
@@ -338,9 +346,9 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         self._objectives: List[DesignObjective] = []
         self._cur_sol:OptimizationProblemSolution = None
         self._solutions:List[OptimizationProblemSolution]= []
-        self._analysis_executors:List[AnalysisExecutor]=[]
-        self._use_ndarray_connectors = False
-        self._opt_algorithm:OptimizationAlgorithm = None #dodjeljuje se kroz korisnicki program op.opt_algorithm = ...
+        self._analysis_executors:List[AnalysisExecutor]=[]  
+        self._use_ndarray_connectors = False            #ovo se nigdje ne dodjeljuje na True u simpleopt testu ni ovdje, a opet dohvaćanje vrijednosti i dalje radi.. I, radi dobro. Potvrdjeno. 
+        self._opt_algorithm:OptimizationAlgorithm = None #dodjeljuje se kroz korisnicki program op.opt_algorithm = ... u primjeru - ScipyOptimizationAlgorithm
         pass
 
 
@@ -349,11 +357,11 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         if self.opt_algorithm is not None: # u scipy primjeru to je spremljen objekt tipa ScipyOptimizationAlgorithm 
             self._init_opt_problem() #ako je defaultno da se ne koriste, onda se instancira objekt tipa OptimizationProblem prilikom kojeg se tri arraya inicijaliziraju s nulama, dizajnerske varijable, ciljevi i ogranicenja
             if x0 is None:           #defaultno je None.. ako se pozove op.optimize().. no obicno se prilikom poziva OptimizationAlgorithm.optimize() u zagradama definiraju pocetne vrijednosti dizajnerskih varijabli.. 
-                x0 = self.get_initial_design() #vraca pocetne x-eve na jedan od dva nacina.. 
+                x0 = self.get_initial_design() #vraca pocetne x-eve na jedan od dva nacina.. A to je automatsko random kreiranje
             sols = self.opt_algorithm.optimize(self._desvars, #tu se zapravo poziva u ovom pocetnom slucaju (koji sam dobio od profesora) ScipyOptimizaionAlgorithm.. 
                  self._constraints,self._objectives, x0,        #self._desvars, self._constraints itd. - dodijeljene su preko metoda, preko korisnickih programa.. s onim add_constraint, add_design_variable.. itd. 
                  self.evaluate,self.get_current_sol)            #to su vlastite funkcije ove klase!!!!
-            self._solutions.extend(sols) #rjesenja? 
+            self._solutions.extend(sols) #rjesenja koja vrati scipy ili pymoo algoritam na samom kraju! Moci ce biti vise provedbi provedeno i rjesenja samo prosirena. 
             return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a... 
 
     def get_current_sol(self):
@@ -361,11 +369,11 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
     
     def evaluate(self,x:np.ndarray):
         for i in range (self.num_var):
-            self._desvars[i].value = x[i]
+            self._desvars[i].value = x[i]   #x-evi prosljedjeni u _evaluate funkciju (pymoo) update-aju DesignVariable 
 
         do_save = True
-        for exec in self._analysis_executors:
-            res = exec.analyize()
+        for execu in self._analysis_executors:
+            res = execu.analyize()
             if res != (AnalysisResultType.OK):
                 do_save = False
                 break
@@ -398,7 +406,7 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
     def opt_algorithm(self, value):
         self._opt_algorithm = value
 
-    def add_design_varible(self,dv):
+    def add_design_variable(self,dv):
         self._desvars.append(dv)
 
     def add_constraint(self,item):
@@ -431,7 +439,7 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
                 x0.append(x)
             else:
                 x0.append(dv.value) #moze biti da su definirane neke prve vrijednosti dizajnerskim varijablama... 
-        return x0
+        return x0                   #funkcija vraca pocetni vektor dizajnerskih varijabli - x0
 
     def get_ub_design(self,is_random:bool=False):
         x0 = []

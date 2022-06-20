@@ -32,7 +32,7 @@ class ScipyModelAnalysis():
         self._calback_analyse_method = calback_analyse #funkcija ili metoda koja se kao callback salje 
 
     def init_analysis(self,num_var):
-        self._xlast: np.ndarray = np.ones(num_var)*np.random.random() #random odabir pocetnih vrijednosti problema, design varijabli
+        self._xlast: np.ndarray = np.ones(num_var)*np.random.random() #random odabir zadnjeg x-a.. no mislim da to nije pocetni x, vec neki x u odnosu na koji ce se prvi put ova metoda koristiti _is_new_x_vals
 
     def _is_new_x_vals(self,x:np.ndarray):
         if np.allclose(x,self._xlast,rtol=self._rtol, atol=self._atol): #zanimljiva funkcija koja provjerava jesu li se promijenile design varijable
@@ -41,7 +41,7 @@ class ScipyModelAnalysis():
 
     def analyse(self,x:np.ndarray):
         if self._is_new_x_vals(x):      #jako sazet kod - tak bi i ja trebal svoj stari kod promijenit, za sve postoji funkcija
-            self._calback_analyse_method(x) # Callback metoda koja se poziva. 
+            self._calback_analyse_method(x) # Callback metoda koja se poziva je zapravo OptimizationProblem.evaluate metoda! A, ona zapravo pokazuje na analyize metodu u kojoj smo postavili problem.. drugim rijecima outarray iz inarray-a
             self._xlast[:]=x[:]         #ovo bi vjerojatno znacilo - stari postaju novi
         pass
 
@@ -99,14 +99,14 @@ class ScipyConstraint(ScipyCriteria):
 
     def get_constraint_data_scipy(self):
         if self.con.con_type == ConstrType.EQ:
-            return {'type': 'eq', 'fun': self.criteria_fun_scipy}
-        else:
+            return {'type': 'eq', 'fun': self.criteria_fun_scipy} #ovo je pokazivac na funkciju - callback.. jer nema zagrada!
+        else:                                                     #da su zagrade (x), onda bi se u tom trenu pozvala funkcija, ovo je samo pokazivac!
             return {'type': 'ineq', 'fun': self.criteria_fun_scipy}
 
-    def criteria_fun_scipy(self, x:np.ndarray) ->float:
-        self._spa.analyse(x)
-        return self.con.value_gt_0
-
+    def criteria_fun_scipy(self, x:np.ndarray) ->float: 
+        self._spa.analyse(x)            #VAŽNO: ovo je analyse metoda ScipyModelAnalysis klase, a ne analyize metoda AnalysisExecutor klase!
+        return self.con.value_gt_0      #EKSTREMNO VAZNO! iako pokrece analyse gdje se izracunavaju sve funkcije cilja i sva ogranicenja (SAMO AKO JE NOVI X!), vraca vrijednost samo
+                                        #od tog ogranicenja! I, na taj nacin je, iako objedinjeno u analyse metodi ScipyModelAnalysis klase, ovdje to razluceno na svaku zasebe funkcija ogranicenja! redak self.con.value_gt_0 vraca jedan broj, vrijednost jedne funkcije ogranicenja
 class ScipyObjective(ScipyCriteria):    #objective nasljedjuje kriterij - funkcija super, salju se spa i obj. 
     def __init__(self, spa:ScipyModelAnalysis,obj:DesignObjective):
         super().__init__(spa,obj)
@@ -132,9 +132,9 @@ class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
     def _generate_scipy_problem(self,desvars: List[DesignVariable],
                  constraints: List[DesignConstraint],
                  objectives: List[DesignObjective],
-                 calback_evaluate):
+                 calback_evaluate):        #ovo konacno pokazuje na funkciju evaluate u OptimizationProblem.optimize
 
-        sp_ma:ScipyModelAnalysis = ScipyModelAnalysis(calback_evaluate)
+        sp_ma:ScipyModelAnalysis = ScipyModelAnalysis(calback_evaluate) #VAŽNA LINIJA - kreira se taj ScipyModelAnalysis objekt - i prosljedjuje se pokazivac na funkciju - vidi poziv _generate_scipy_problem iz optimize metode ove klase
         # Design Variables
         sp_desvars: List[ScipyVariable] = []
         for dv in desvars:              #desvars bi trebala biti lista elemenata tipa DesignVariable... 
@@ -146,17 +146,17 @@ class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
             spcon = ScipyConstraint(sp_ma,con)
             sp_cons.append(spcon)
         # Objective
-        sp_obj:ScipyObjective = ScipyObjective(sp_ma,objectives[0])
-
-        consdata = self._get_constraint_data(sp_cons)
+        sp_obj:ScipyObjective = ScipyObjective(sp_ma,objectives[0])    #s obzirom da je jednociljno, samo je objectives[0].. da je viseciljnoo - bilo bi isto ko i za ogranicenja odmah iznad.. bila bi for petlja, koja bi presla
+                                                                       #cijelu listu ogranicenja kao iterable.. for obj in objs npr.. 
+        consdata = self._get_constraint_data()
         if self._method == 'COBYLA':
             bnds=None                       #COBYLA ide sve preko constraints-a
             dvcdata = self._get_bounds_as_constraint_data(sp_desvars) #funkcija specijalno za prevodjenje boundsa u constraints... 
             consdata.extend(dvcdata)
-        else:
+-        else:
             bnds = self._get_bounds(sp_desvars) #saljes ScipyVariable, ova funkcija vraca bounds tako da ih ekstrahira iz ScipyVarijabli, tj. iz niza redom.. 
-        objfun = sp_obj.criteria_fun_scipy      #kriterij prestanka optimizacije, funkcija vraca true kad je kriterij ispunjeni tu staje
-        sp_ma.init_analysis(len(desvars))
+        objfun = sp_obj.criteria_fun_scipy      #Kao sto je za ogranicenja trebao consdata=_get_constraint_data(sp_cons), ovdje je jedan cilj optimizacije, i zato se ovako eksplicitno dodjeljuje - da vrati objfun - dakle callable - metodu ScipyObjective objekta/klase...
+        sp_ma.init_analysis(len(desvars))       #ova linija ne daje x0 vec inicijalizira neki zadnji x - kao da je to zadnje rjesenje, iako x0 salje kao pocetni. 
         return (objfun,consdata,bnds)
 
     def _get_bounds(self, sp_dvs:List[ScipyVariable]):
@@ -182,7 +182,7 @@ class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
                 consdata.append(ubc)
         return consdata
 
-    def _get_constraint_data(self,sp_cons:List[ScipyConstraint]):   #doslovno 
+    def _get_constraint_data(self,sp_cons:List[ScipyConstraint]):   #doslovno 3
         consdata = []
         for spcon in sp_cons:
             consdata.append(spcon.get_constraint_data_scipy())
@@ -192,13 +192,13 @@ class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
                  constraints: List[DesignConstraint],
                  objectives: List[DesignObjective],
                  x0:np.ndarray,
-                 calback_evaluate, calback_get_curren_solution) -> List[OptimizationProblemSolution]: #bilo je ovaak (calback_evaluate,calback_get_curren_solution) -> List[OptimizationProblemSolution]:
+                 calback_evaluate, calback_get_curren_solution) -> List[OptimizationProblemSolution]: #za to sto su callback_evaluate i callback_get_current_solution vidi optbase.py OptimizationProblem.optimize - to su dakle metode evaluate i get_current_sol u toj klasi
         
         (objfun,consdata,bnds) = self._generate_scipy_problem(desvars, constraints, objectives, calback_evaluate)  #tu se poziva generate_scipy_problem metoda kao arugment callback funkcije, to se poziva odmah! - ta funkcija naravno vraca (objfun, consdata, bnds) upravo tim redom 
                                                                                                                     #calback_evaluate i calback_get_current_solution su callback funkcije, i ne izvršavaju se odmah, vec se pozivaju kasnije(objfun,consdata,bnds) ce biti
 
         if self._method == 'SLSQP':
-            sol = minimize(objfun, x0, constraints=consdata, method=self._method,options=self._options, bounds=bnds) #implementiran konacan poziv x0 su pocetne vrijednosti design varijable
+            sol = minimize(objfun, x0, constraints=consdata, method=self._method,options=self._options, bounds=bnds) #implementiran konacan poziv, x0 su pocetne vrijednosti design varijable consdata - treba biti lista rjecnika
         elif self._method == 'COBYLA':
             sol = minimize(objfun, x0, constraints=consdata, method=self._method,options=self._options)
         self._sol=sol                               #rjesenje se sprema u privatnu _sol varijablu, postoji property posto je privatna ._sol
