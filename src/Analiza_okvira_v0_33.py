@@ -8,7 +8,7 @@ import numpy as np
 import numpy.polynomial.polynomial as nppp
 import copy as c
 import scipy.optimize as sco
-from typing import List, Dict 
+from typing import List, Dict
 
 PI=m.pi
 
@@ -51,7 +51,7 @@ class Section():
         if (not self.is_there_dict_o_cons):
             self.dict_o_cons:Dict={}
             self.is_there_dict_o_cons=True
-            
+
         dict_key=str(list_o_elements[0])
         dict_value=(list_o_elements[1],list_o_elements[2])
         self.dict_o_cons[dict_key]=dict_value
@@ -73,25 +73,25 @@ class I_Beam(Section):
         t2=float(line_list[8])
         self.parameters=[h,t,w1,t1,w2,t2]
         self.is_there_dict_o_cons:bool=False
-        self.calculate(self.parameters)
+        self.calculate()
 
-    def calculate(self,parameters):
+    def calculate(self):
 
         '''Method of I_beam class class that calculates all the necessary section values.'''
 
-        self.parameters=parameters
-
-        h=float(parameters[0])
-        t=float(parameters[1])
-        w1=float(parameters[2])
-        t1=float(parameters[3])
-        w2=float(parameters[4])
-        t2=float(parameters[5])
+        h=float(self.parameters[0])
+        t=float(self.parameters[1])
+        w1=float(self.parameters[2])
+        t1=float(self.parameters[3])
+        w2=float(self.parameters[4])
+        t2=float(self.parameters[5])
 
         A1 = w1*t1
         A2 = w2*t2
         A3 = (h-t1-t2)*t
+        
         self.A = A1 + A2 + A3
+        
         y1 = t1/2
         y2 = (h+t1-t2)/2
         y3 = (h-t2/2)
@@ -99,17 +99,18 @@ class I_Beam(Section):
         Iy1 = w1*t1**3/12 + A1*(yc-y1)**2
         Iy2 = w2*t2**3/12 + A2*(yc-y2)**2
         Iy3 = ((h-t1-t2)**3*t)/12 + A3*(yc-y3)**2
+        
         self.Iy = Iy1 + Iy2 + Iy3
         self.Wy=2*self.Iy/h
 
-    def optim(self, list_o_param):  
+    def optim(self, list_o_param):
 
         '''Method that memorizes boundaries for parameters of a section'''
         for i in list_o_param:
-            
+
             index=list_o_param.index(i)
             list_o_param[index]=float(i) #zasto je tu stajao int? da zaokruzi na cijelu vrijednost? nepotrebno!
-        
+
         b1=(list_o_param[0],list_o_param[1])
         b2=(list_o_param[2],list_o_param[3])
         b3=(list_o_param[4],list_o_param[5])
@@ -128,68 +129,7 @@ class I_Beam(Section):
 ##        dict_value = tuple(float(lb),float()]
 
 
-class T_Beam_on_plate(Section):
 
-    '''Class that creates I profile beam and is able to compute section values: area and moment of inertia'''
-
-    def __init__(self,line_list:List[str]):
-
-        self.ID=int(line_list[0])
-        self.name=line_list[2]
-        h=float(line_list[3])
-        t=float(line_list[4])
-        self.w_plate=float(line_list[5])        #dio oplate koji se ne optimizira
-        self.t_plate=float(line_list[6])
-        wf=float(line_list[7])
-        tf=float(line_list[8])
-        self.parameters=[h,t,wf,tf]
-        self.is_there_dict_o_cons:bool=False
-        self.calculate(self.parameters)
-
-    def calculate(self,parameters):
-
-        '''Method of I_beam class class that calculates all the necessary section values.'''
-
-        self.parameters=parameters
-
-        h=float(self.parameters[0])
-        t=float(self.parameters[1])
-        w_plate=float(self.w_plate)
-        t_plate=float(self.t_plate)
-        wf=float(self.parameters[4])
-        tf=float(self.parameters[5])
-
-        A1 = w_plate*t_plate
-        A2 = w2*tf
-        A3 = (h-t_plate-tf)*t
-        self.A = A1 + A2 + A3
-        y1 = t_plate/2
-        y2 = (h+t_plate-tf)/2
-        y3 = (h-tf/2)
-        yc = (A1*y1 + A2*y2 + A3*y3)/self.A
-        Iy1 = w_plate*t_plate**3/12 + A1*(yc-y1)**2
-        Iy2 = w2*tf**3/12 + A2*(yc-y2)**2
-        Iy3 = ((h-t_plate-tf)**3*t)/12 + A3*(yc-y3)**2
-        self.Iy = Iy1 + Iy2 + Iy3
-        self.Wy=2*self.Iy/h
-
-    def optim(self, list_o_param):  
-
-        '''Method that memorizes boundaries for parameters of a section'''
-        for i in list_o_param:
-            
-            index=list_o_param.index(i)
-            list_o_param[index]=float(i) #zasto je tu stajao int? da zaokruzi na cijelu vrijednost? nepotrebno!
-        
-        b1=(list_o_param[0],list_o_param[1])
-        b2=(list_o_param[2],list_o_param[3])
-        b3=(list_o_param[4],list_o_param[5])
-        b4=(list_o_param[6],list_o_param[7])
-
-
-        self.bounds=(b1, b2, b3, b4)
-
-       
 class C_Beam(Section):
 
     '''Class that creates C profile beam and is able to compute section values: area and moment of inertia'''
@@ -204,16 +144,14 @@ class C_Beam(Section):
         tp=float(line_list[6])
         self.parameters=[h,w,ts,tp]
         self.is_there_dict_o_cons:bool=False
-        self.calculate(self.parameters)
+        self.calculate()
 
-    def calculate(self,parameters):
+    def calculate(self):
 
-        self.parameters=parameters
-
-        h=float(parameters[0])
-        w=float(parameters[1])
-        ts=float(parameters[2])
-        tp=float(parameters[3])
+        h=float(self.parameters[0])
+        w=float(self.parameters[1])
+        ts=float(self.parameters[2])
+        tp=float(self.parameters[3])
 
         A1 = (w-ts)*tp
         A2 = h*ts
@@ -221,15 +159,15 @@ class C_Beam(Section):
         self.Iy = (w-ts)*tp**3/12 + A1*((h-tp)/2)**2 + ts*h**3/12
         self.Wy = 2*self.Iy/h
 
-    def optim(self, list_o_param):  
+    def optim(self, list_o_param):
 
         '''Method that memorizes boundaries for parameters of a section'''
 
         for i in list_o_param:
-            
+
             index=list_o_param.index(i)
             list_o_param[index]=int(i)
-        
+
         b1=(list_o_param[0],list_o_param[1])
         b2=(list_o_param[2],list_o_param[3])
         b3=(list_o_param[4],list_o_param[5])
@@ -248,24 +186,22 @@ class CircBar(Section):
         d=float(line_list[3])
         self.parameters=[d]
         self.is_there_dict_o_cons:bool=False
-        self.calculate(self.parameters)
+        self.calculate()
 
-    def calculate(self,parameters):
+    def calculate(self):
 
-        self.parameters=parameters
-
-        d=float(parameters[0])
+        d=float(self.parameters[0])
 
         self.A = d**2*PI/4
         self.Iy = d**4*PI/64
         self.Wy = 2*self.Iy/d
 
-    def optim(self, list_o_param):  
+    def optim(self, list_o_param):
 
         '''Method that memorizes boundaries for parameters of a section'''
 
         for i in list_o_param:
-            
+
             index=list_o_param.index(i)
             list_o_param[index]=int(i)
 
@@ -285,25 +221,23 @@ class CircTube(Section):
         dv=float(line_list[4])
         self.parameters=[du,dv]
         self.is_there_dict_o_cons:bool=False
-        self.calculate(self.parameters)
+        self.calculate()
 
-    def calculate(self,parameters):
+    def calculate(self):
 
-        self.parameters=[du,dv]
+        du=float(self.parameters[0])
+        dv=float(self.parameters[1])
 
-        du=float(parameters[0])
-        dv=float(parameters[1])
-        
         self.A = (dv**2-du**2)*PI/4
         self.Iy = (dv**4-du**4)*PI/64
         self.Wy = 2*self.Iy/dv
 
-    def optim(self, list_o_param):  
+    def optim(self, list_o_param):
 
         '''Method that memorizes boundaries for parameters of a section'''
 
         for i in list_o_param:
-            
+
             index=list_o_param.index(i)
             list_o_param[index]=int(i)
 
@@ -311,7 +245,7 @@ class CircTube(Section):
         b2=(list_o_param[2],list_o_param[3])
 
         self.bounds=(b1, b2)
-        
+
 class Rectangle(Section):
 
     '''Class that creates rectangular tube beam and is able to compute section values: area and moment of inertia'''
@@ -326,27 +260,26 @@ class Rectangle(Section):
         wu=float(line_list[6])
         self.parameters=[hv,wv,hu,wu]
         self.is_there_dict_o_cons:bool=False
-        self.calculate(self.parameters)
+        self.calculate()
 
-    def calculate(self,parameters):
+    def calculate(self):
 
-        self.parameters=[hv,wv,hu,wu]
 
-        hv=float(parameters[0])
-        wv=float(parameters[1])
-        hu=float(parameters[2])
-        wu=float(parameters[3])
-        
+        hv=float(self.parameters[0])
+        wv=float(self.parameters[1])
+        hu=float(self.parameters[2])
+        wu=float(self.parameters[3])
+
         self.A=hv*wv-hu*wu
         self.Iy=wv*hv**3/12-wu*hu**3/12
         self.Wy=2*self.Iy/hv
 
-    def optim(self, list_o_param):  
+    def optim(self, list_o_param):
 
         '''Method that memorizes boundaries for parameters of a section'''
 
         for i in list_o_param:
-            
+
             index=list_o_param.index(i)
             list_o_param[index]=int(i)
 
@@ -388,9 +321,7 @@ class Property():
 
     '''Class that creates properties: combinations of sections and material'''
 
-    def __init__(self,line_list:List[str]):
-
-        global materials, sections
+    def __init__(self,line_list:List[str], materials, sections):
 
         material=int(line_list[2])
         section=int(line_list[3])
@@ -404,43 +335,46 @@ class Property():
 
 class Beam():
 
-    def __init__(self,beam_name,numer_beam,line_list:List[str]):
+    def __init__(self,beam_name,numer_beam,line_list:List[str], structure_obj, ):
 
-        global structure_obj, kd
 
         node_num1=int(line_list[1])             #Ovo su cjelobrojni indeksi odgovarajucih objekata u njihovim listama: nodes i properties listama
         node_num2=int(line_list[2])
         prop=int(line_list[3])
 
         self.name=beam_name                     #Name se mozda moze koristiti i u vizualizaciji - nazivi greda pojedinih.
-        self.node1=nodes[node_num1-1]           #Zasad je slozeno u strukturi pamcenje pozicije preko ID-a pojedinog node-a. To znaci da se id treba dodijeljivat automatski.. od 1 do kolko ih ima... i da to korespondira s polozajem u listi.
-        self.node2=nodes[node_num2-1]
+        self.node1=structure_obj.nodes[node_num1-1]           #Zasad je slozeno u strukturi pamcenje pozicije preko ID-a pojedinog node-a. To znaci da se id treba dodijeljivat automatski.. od 1 do kolko ih ima... i da to korespondira s polozajem u listi.
+        self.node2=structure_obj.nodes[node_num2-1]
         self.length=self.length_calc(self.node1,self.node2)
         self.m12=0
         self.m21=0
         self.prop=structure_obj.properties[prop-1]
         self.calculate_k_ij()
-        num_o_fields=m.ceil(self.length/kd)             #num_o_fields - broj polja na koja je podijeljena greda, vezano uz duljinu vektora self.intrinsic_diagram. kd - korak diskretizacije"
+        num_o_fields=m.ceil(self.length/structure_obj.kd)             #num_o_fields - broj polja na koja je podijeljena greda, vezano uz duljinu vektora self.intrinsic_diagram. kd - korak diskretizacije"
         self.kd_local=self.length/num_o_fields          #kd_local - lokalni korak diskretizacije"
         self.x=np.array(np.arange(0,self.length+self.kd_local,self.kd_local))   #np.arrange se mora koristiti za kreiranje takvog niza. Range može samo cjelobrojne brojeve imati za argumente. +self.kd_local"
         self.intrinsic_diagram=np.zeros(len(self.x))
         self.intrinsic_diagram_w_trap:np.ndarray=np.zeros(len(self.x))
         self.max_s=0
 
+    @property
+    def sigma_limit(self):
+        return self.prop.mat.sigmadop
+
+    def get_stress_over_limit(self):
+        
+        return self.max_s/self.prop.mat.sigmadop
+
     def length_calc(self,node1:Node,node2:Node) -> float:
 
         node_vector=node2.coords-node1.coords
         length_o_beam=np.linalg.norm(node_vector)
-        
+
         return float(length_o_beam)
 
     def calculate_k_ij(self):
 
         self.k_ij:float=2*self.prop.mat.E*self.prop.sect.Iy/self.length
-
-##    def edit_properties(self):    VRLO VJEROJATNO OVO CE BITI NEPOTREBNO
-##
-##        pass                        #OVO TREBA DORADITI U SURADNJI S OPTIMIZACIJSKIM ALGORITMOM
 
     def create_load(self,line_list:List[str]):
 
@@ -459,7 +393,7 @@ class Beam():
         elif load_type=="qlinl":                                    #trokutasta raspodjela opterecenja se spusta slijeva nadesno
                 m12=-value*(self.length**2)/20
                 m21=value*(self.length**2)/30
-                
+
         elif load_type=="qlinr":                                    #trokutasta raspodjela opterecenja se spusta zdesna nalijevo
                 m12=-value*(self.length**2)/30
                 m21=value*(self.length**2)/20
@@ -530,7 +464,7 @@ class Beam():
 
         trapezius=np.linspace(self.M12,self.M21,len(self.x))    #racunanje trapeza zbog nejednakih momentata upetosti u cvorovima
         self.intrinsic_diagram_w_trap=self.intrinsic_diagram+np.ravel(trapezius)             #np.ravel funkcija potrebna da se mogu zbrojiti dva niza - jer su inace drugacijih oblika (R,1) i (R,)
-        max_moment=np.max(self.intrinsic_diagram_w_trap)                #pronalazak maksimalnog momenta na gredi, starija verzija - max(self.intrinsic_diagram_w_trap) 
+        max_moment=np.max(self.intrinsic_diagram_w_trap)                #pronalazak maksimalnog momenta na gredi, starija verzija - max(self.intrinsic_diagram_w_trap)
         self.max_s=abs(max_moment/self.prop.sect.Wy)                 #izracun maksimalnog naprezanja na gredi
 
 
@@ -539,19 +473,24 @@ class Structure():
     '''Supervising and super class that represents all of the model: it's nodes, sections, materials, properties, beams and loads assigned to beams. It's purpose is to establish
         communication between different objects and to run the analysis. It has access to all needed parts for optimization.'''
 
-    def __init__(self,nodes,materials,sections,properties,beams):
+    def __init__(self, kd):
 
-        self.nodes:List[Node]=nodes
+        self.nodes:List[Node]=[]
+        self.materials:List[Material]=[]
+        self.sections:List[Section]=[]
+        self.properties:List[Property]=[]
+        self.beams:List[Beam]=[]
 
-        self.materials:List[Material]=materials
+        self.kd=kd
 
-        self.sections:List[Section]=sections
+    @property
+    def beam_stresses_array(self) -> List[float]:
+        
+        stresses=[]
+        for beam in self.beams:
+            stresses.append(beam.max_s)
 
-        print(properties)
-
-        self.properties:List[Property]=properties
-
-        self.beams:List[Beam]=beams
+        return stresses
 
     def global_equation(self)-> np.ndarray: #vraca matricu nxn, gdje je n broj mogucih kuteva zakreta
 
@@ -561,27 +500,32 @@ class Structure():
 
         K=np.zeros((len(self.nodes),len(self.nodes)))
         m=np.zeros((len(self.nodes),1))
-                                            #Petlja po numpyevim poljima je spora - Python je progr. jezik za prototipiranje.
-        for beam in self.beams:             #OVO JE DOSLOVNO FORMIRANJE JEDNADŽBI RAVNOTEŽE ZA SVAKI CVOR! KORISTENJEM NUMPY-A IZVODENJE JE BRZE
-
+                                            
+        for beam in self.beams:
+            
+                    beam.prop.sect.calculate()
+                    beam.calculate_k_ij()
                     ixgrid=np.ix_([beam.node1.ID-1, beam.node2.ID-1], [beam.node1.ID-1, beam.node2.ID-1])   #Koristenje np.ix_ da se na prava mjesta u globalnoj matrici doda lokalna krutost."
-                    K[ixgrid]+=np.array([[2*beam.k_ij, -beam.k_ij], [-beam.k_ij, 2*beam.k_ij]])     #numpy zbrajanje preko submatrica  polje indeksa... np.ix_ numpy je brzi - da wrapped FORTRAN C++"
+                    K[ixgrid]+=np.array([[2*beam.k_ij, -beam.k_ij], [-beam.k_ij, 2*beam.k_ij]])             #numpy zbrajanje preko submatrica  polje indeksa... np.ix_ numpy je brzi - da wrapped FORTRAN C++"
 
                     m[beam.node1.ID-1]+=(-beam.m12)      #VEKTOR MOMENATA
                     m[beam.node2.ID-1]+=(-beam.m21)
 
 
-        K_inv = np.linalg.inv(K)                                                 #np.linalg.inv - funkcija iz np.linalg za racunanje inverza matrice.."
-        uvjetovanost = np.linalg.norm(K,'fro')*np.linalg.norm(K_inv,'fro')       #ISPIS I RACUNANJE UVJETOVANOSTI RADI KONTROLE."
-        
-##        print("Uvjetovanost matrice K iznosi: \n", uvjetovanost)      #ovo oblikovati u metodu, koja provjerava numericku stranu, uvjetovanost matrice - to dodati u metodu koja daje status
+        K_inv = np.linalg.inv(K)
+
+##        #ISPIS I RACUNANJE UVJETOVANOSTI RADI KONTROLE."
+##        
+##        uvjetovanost = np.linalg.norm(K,'fro')*np.linalg.norm(K_inv,'fro')       
+##
+##        print("Uvjetovanost matrice K iznosi: \n", uvjetovanost)
 ##        print("Matrica K: \n", K)
 ##        print("Inverz matrice K: \n", K_inv)
 ##        print("Vektor momenata", m)
 
 
-        phi = np.matmul(K_inv,m)       #matmul funkcija iz numpy-a za matricno mnozenje
-        
+        phi = np.matmul(K_inv,m)       #MATRICNO MNOZENJE
+
         return phi
 
 
@@ -596,12 +540,13 @@ class Structure():
 
         for i in range(0,len(self.nodes)):
             self.nodes[i].phi=phi[i]        #POJASNJENJE: U cvoru, grede se zakrecu zajedno za isti kut. Primjetimo, ova metoda uzima u obzir krutosti. Tako da ce taj zakret biti
-                                            #najblizi zakretu najkruce grede u stvarnosti. VAZNO - prema redoslijedu cvorova su i kreirane jednadzbe, pa tako ce i rjesenja biti ispravno poredana 
+                                            #najblizi zakretu najkruce grede u stvarnosti. VAZNO - prema redoslijedu cvorova su i kreirane jednadzbe, pa tako ce i rjesenja biti ispravno poredana
 
 
         #Momenti upetosti na kraju cvorova
 
         for beam in self.beams:
+            
             beam.M12 = beam.k_ij*(2*beam.node1.phi-beam.node2.phi)+beam.m12
             beam.M21 = beam.k_ij*(2*beam.node2.phi-beam.node1.phi)+beam.m21
             beam.max_stress()
@@ -630,48 +575,271 @@ class Structure():
         '''Method that can be used by other programs in order to fetch (get) mass of a structure in order to form objective function'''
 
         mass=0
-        for beam in structure_obj_beams:
+        
+        for beam in self.beams:
+            
             mass+=beam.length*beam.prop.sect.A*beam.prop.mat.dens
 
         return mass
 
-class Input_file(): #DODATI NEKU FUNKCIONALNOST
+    def get_section_parameters(self, section_ID) -> List:
+
+        '''Method that returns section array in order to facilitate extraction of parameters array for pymoo optimization. '''
+        
+        return self.sections[section_ID-1].parameters
+
+class Input_file():
 
     '''Class that stores data about input file used to generate analysis as well as functionality that goes with it.'''
 
-    def __init__(self,path):
+    def __init__(self,path, kd):
         self.path=path
+        self.kd=kd
 
-class Constraint_Ratio(): #Kreiranje constraints moja ideja. Pomocu odredenih ulaznih parametara definira se i inicijalizira constraint kao objekt, a metoda se onda može iskoristiti kao funkcija da se oblikuje constraint.
+    def load_file(self):
 
-    '''For now, only implemented for I beams. Otherwise, unpredictable results. Probably crash expected.'''
+        try:
+            self.inp_file=open(self.path,"rt")
+        except:
+            print("Greska. Ili datoteka ne postoji, ili je unesena putanja kriva.")
+            print("Provjeriti ispravnost putanje i postojanje datoteke!")
 
-    def __init__(self,section:Section, species, which, type_o_inequality:str='GT', rhs:float=0 ):
+    def create_model(self):
 
-        self.section=section
-        self.rhs=float(self.section.dict_o_cons[species][which])
-        self.type_o_ineq=type_o_inequality
+        # DEFINICIJA NUKMERATORA ID-a ZA STVARANJE DEFAULTNIH IMENA AKO NE POSTOJE
 
-        if species=='BF/TF':
-            self.numerator=self.section.parameters[4]
-            self.denominator=self.section.parameters[5]
-        elif species=='HW/TW':
-            self.numerator=self.section.parameters[0]
-            self.denominator=self.section.parameters[1]
-        elif species=='BF/HW':
-            self.numerator=self.section.parameters[4]
-            self.denominator=self.section.parameters[0]
-        elif species=='TF/TW':
-            self.numerator=self.section.parameters[5]
-            self.denominator=self.section.parameters[1]
-            
-    def constraint(self,x) -> float:    #x je tu samo radi zahtjeva scipy funkcija
+        numer_node=1
+        numer_mat=1
+        numer_sect=1
+        numer_prop=1
+        name_prop=1
+        numer_beam=1
+        name_beam=1
 
-        if self.type_o_ineq=='GT':
-            return self.numerator/self.denominator-self.rhs #inequality su non-negative tj. parameter -rhs > 0 , zato kad je parameter < rhs, treba preoblikovati u -parameter + rhs > 0
-        else:
-            return self.rhs-self.numerator/self.denominator
-                
+        structure_obj=Structure(self.kd)
+
+        #DEFINIRANJE NEKIH GLOBALNIH BROJACA I LISTA
+
+        tpi=0                       #text position index
+        lines= []                   #buduce linije tekstualne datoteke
+
+        #PROLAZENJE KROZ TEKSTUALNU DATOTEKU I ZATVARANJE DATOTEKE
+
+        for line_string in self.inp_file:
+            lines.append(line_string)               #lines sada sadrze sav tekst tekstualne datoteke
+        self.inp_file.close()
+
+        #CITANJE BROJA OBJEKATA I KREIRANJE ISTIH POZIVANJEM FUNKCIJA
+
+        quantities_read=False
+        curr=0
+        num_o_objects=[]
+        sections_to_opt=[]
+        num_o_param=[]
+
+        while tpi<len(lines):
+
+            if lines[tpi][0]!="#" and not quantities_read:  #u num_o_objects se pamti broj objekata - cvorova, presjeka, greda...
+                quantities_read=True
+                line_string=lines[tpi]                      #Prvih linija komentara moze biti vise, pa kad naide na liniju bez prvog znaka # - cita koliko ima kojih objekata
+                line_string=line_string.strip()
+                line_list=line_string.split(",")
+                i=0
+                for num in line_list:
+                    line_list[i]=int(num)
+                    i+=1
+                num_o_objects=line_list
+
+                #print(num_o_objects)                        #RADI KONTROLE
+
+            elif lines[tpi][0]!="#" and quantities_read:
+
+                if curr==0:                                 #NODE
+
+                    for i in range(0,num_o_objects[curr]):
+
+                        line_string=lines[tpi]
+                        line_list=self.word_splitting(line_string)
+                        numer_node, structure_obj = self.node_creation(line_list, numer_node, structure_obj)
+                        tpi+=1
+
+                elif curr==1:                                 #MATERIAL
+
+                    for i in range(0,num_o_objects[curr]):
+
+                        line_string=lines[tpi]
+                        line_list=self.word_splitting(line_string)
+                        numer_mat, structure_obj = self.material_creation(line_list, numer_mat, structure_obj)
+                        tpi+=1
+
+                elif curr==2:                                 #SECTION
+
+                    for i in range(0,num_o_objects[curr]):
+
+                        line_string=lines[tpi]
+                        line_list=self.word_splitting(line_string)
+                        numer_sect, structure_obj = self.section_creation(line_list, numer_sect, structure_obj)
+                        tpi+=1
+
+                elif curr==3:                                 #PROPERTY
+
+                    for i in range(0,num_o_objects[curr]):
+
+                        line_string=lines[tpi]
+                        line_list=self.word_splitting(line_string)
+                        numer_prop, structure_obj = self.property_creation(line_list, numer_prop, structure_obj)
+                        tpi+=1
+
+                elif curr==4:                                 #BEAM
+
+                    for i in range(0,num_o_objects[curr]):
+
+                        line_string=lines[tpi]
+                        line_list=self.word_splitting(line_string)
+                        name_beam, numer_beam, structure_obj = self.beam_creation(line_list, name_beam, numer_beam, structure_obj)
+                        tpi+=1
+
+                elif curr==5:                                 #LOAD
+
+                    for i in range(0,num_o_objects[curr]):
+
+                        line_string=lines[tpi]
+                        line_list=self.word_splitting(line_string)
+                        structure_obj = self.load_creation(line_list, structure_obj)
+                        tpi+=1
+
+                curr+=1
+
+            tpi+=1
+
+        return structure_obj
+
+
+    def word_splitting(self, line_string:str)->List[str]:
+
+        '''Function used for stripping and splitting words from textual file. Mainly used in creation of instances of a class.'''
+
+        line_string=line_string.strip()     #cisti pocetak od razmaka
+
+        line_list=line_string.split(",")    #razdvaja na pojedine rijeci
+
+        i=0
+        for word in line_list:
+            word=word.strip()
+            word=word.strip('"')
+            line_list[i]=word
+            i+=1
+
+        return line_list
+
+    #CREATION FUNCTIONS - razne funkcije za kreiranje niza objekata na globalnoj razini...
+
+    def node_creation(self, line_list:List[str], numer_node, structure_obj):
+
+        '''Function that creates NODE OBJECTS from input file.'''
+
+        node_name="Node"+str(numer_node)                                    #Automatsko dodavanje imena cvoru
+        structure_obj.nodes.insert(numer_node, Node(node_name,line_list))    #KREIRANJE CVORA - staviti metodu append
+
+        numer_node+=1                   #Povecavanje brojaca za 1
+        
+        return numer_node, structure_obj
+
+
+    def material_creation(self, line_list, numer_mat, structure_obj):
+
+        '''Function that creates MATERIAL OBJECTS from input file.'''
+        structure_obj.materials.insert(numer_mat,Material(line_list)) #pogledati datoteku sto je koji element niza line_list
+        
+        numer_mat+=1
+
+        return numer_mat, structure_obj
+
+
+    def beam_creation(self, line_list, name_beam, numer_beam, structure_obj):   #detaljnije pojasnjenje strukture - vidi u node_creation funkciji. Tamo je opisan pojedini redak - ovdje se ponavlja...
+
+        '''Function that creates BEAM OBJECTS from input file.'''
+
+
+        beam_name="Beam"+str(name_beam)                                         # Vidjeti je li potrebno??? Moze bit, ali jedino ako se uz to omoguci unos kao dodatna mogucnost.
+        structure_obj.beams.insert(numer_beam,Beam(beam_name,numer_beam,line_list, structure_obj))
+
+        name_beam+=1
+        numer_beam+=1
+
+        return name_beam, numer_beam, structure_obj
+
+
+    def section_type(self, line_list, numer_sect, structure_obj):
+
+        '''Function that is actually a switch-case. Dependent on the read type of the section, it instatiates the right one'''
+
+        chooser=line_list[1]
+
+        if chooser=="I_Beam":
+            structure_obj.sections.insert(numer_sect,I_Beam(line_list))
+        elif chooser=="T_Beam_on_plate":
+            structure_obj.sections.insert(numer_sect,T_Beam_on_plate(line_list))
+        elif chooser=="C_Beam":
+            structure_obj.sections.insert(numer_sect,C_Beam(line_list))
+        elif chooser=="CircBar":
+            structure_obj.sections.insert(numer_sect,CircBar(line_list))
+        elif chooser=="CircTube":
+            structure_obj.sections.insert(numer_sect,CircTube(line_list))
+        elif chooser=="Rectangle":
+            structure_obj.sections.insert(numer_sect,Rectangle(line_list))
+        elif chooser=="TableSection":
+            structure_obj.sections.insert(numer_sect,TableSection(line_list))
+
+        return structure_obj
+
+    def section_creation(self, line_list, numer_sect, structure_obj):
+
+        '''Function that creates SECTION OBJECTS from input file.'''
+
+        structure_obj = self.section_type(line_list, numer_sect, structure_obj)
+        numer_sect+=1
+
+        return numer_sect, structure_obj
+
+
+    def property_creation(self, line_list, numer_prop, structure_obj):
+
+        '''Function that creates PROPERTY OBJECTS from input file by assigning section and material to it. Also, takes parameter called "cost".
+            That way, it is predicted that cost optimization is possible to achieve.'''
+
+        structure_obj.properties.insert(numer_prop, Property(line_list, structure_obj.materials, structure_obj.sections))
+        numer_prop+=1
+
+        return numer_prop, structure_obj
+
+
+    def load_creation(self, line_list, structure_obj):
+
+        '''Function that calls proper beam object and creates loads that act on it'''
+
+        section_ID=int(line_list[2])
+        structure_obj.beams[section_ID-1].create_load(line_list)
+
+        return structure_obj
+
+
+    def switch_type(self, line_list):
+
+        '''Function that calles appropriate function for creation of objects from input file.'''
+        chooser=line_list[0]
+        if chooser=="Node":
+            node_creation(line_list)
+        elif chooser=="Material":
+            material_creation(line_list)
+        elif chooser=="Section":
+            section_creation(line_list)
+        elif chooser=="Property":
+            property_creation(line_list)
+        elif chooser=="Load":
+            load_creation(line_list)
+        elif chooser=="Beam":
+            beam_creation(line_list)
 
 class Constraint_stress():
 
@@ -686,395 +854,12 @@ class Constraint_stress():
 
         return sigmadop-max_stress
 
-class Constraints_bounds():         #napraviti opciju za None u bounds-u... Ako je None, da ne kreira bounds za tu gornju ili donju granicu... 
 
-    def __init__(self,section:Section ,tuple_in_bnds,ind_o_param):
-
-        self.section=section
-        self.ind_o_param=ind_o_param           # parametar za koji se kreiraju granice - gornja i donja
-        self.lwbnd=tuple_in_bnds[0]                      #donja granica za parametar
-        self.upbnd=tuple_in_bnds[1]                      #gornja granica za parametar
-
-    def constraint_lower(self,parameters:List[float]) -> float:      
-
-        return self.section.parameters[self.ind_o_param]-self.lwbnd    #ovaj puta nejde [ind_o_param-1] jer je brojac tako postavljen - vidi poziv Constraints_bounds u def cons_COBYLA
-                                                                              #tu ce vjerojatno ici oni konektori
-    def constraint_upper(self,parameters:List[float]) -> float:
-
-        return self.upbnd-self.section.parameters[self.ind_o_param]
-        
-class Optimization():
-
-    def __init__(self,sections_to_opt,num_o_param:int,optim_algorithm:str):
-
-        self.parameters_0=[]
-        self.num_o_param=num_o_param            #niz u koji ce se spremati za presjeke redom navedene za optimizaciju broj parametara potreban za promjenu presjeka..
-        self.bnds=[]
-        self.constraints_obj=[]
-        self.mass=0
-
-        for i in sections_to_opt:          #ova petlja rjesava dodjeljivanje pocetnog guess-a parameters_0
-            
-            self.parameters_0.append(structure_obj.sections[i-1].parameters)  #ovo zasad radi i svi parametri naznacenih greda predaju se u pocetne uvjete parameters_0
-
-        if optim_algorithm=='SLSQP':
-            
-            self.cons=self.cons_SLSQP(sections_to_opt) #self.bonds unutar metode cons_SLSQP
-            self.calc_opt_SLSQP(self.parameters_0,self.cons,self.bnds)
-            
-        elif optim_algorithm=='COBYLA':                          #COBYLA poznaje samo constraints, a ne poznaje bounds
-            
-            self.cons=self.cons_COBYLA(sections_to_opt)
-            self.calc_opt_COBYLA(self.parameters_0,self.cons)
-
-
-    def cons_SLSQP(self,sections_to_opt) -> tuple:
-
-        constraints=[]
-
-        for i in sections_to_opt:           #ova petlja rjesava dodijeljivanje bounds-a                                   #izbrisati samo ovaj redak i spojiti petlje
-            
-            if type(structure_obj.sections[i-1].bounds[0]) is tuple:    #nije bas najbolji nacin za ovo razlikovanje
-                
-                for j in structure_obj.sections[i-1].bounds:        
-                    self.bnds.append(j)
-                    
-            else:
-                self.bnds.append(structure_obj.sections[i-1].bounds)
-
-        self.bnds=tuple(self.bnds)
-
-        for beam in structure_obj.beams:   #kreiranje i definiranje ogranicenja (constraints) prema naprezanju za svaku gredu
-            
-            temp_obj=Constraint_stress(beam)
-            self.constraints_obj.append(temp_obj)        #lista objekata constraints
-            
-            constraints.append({'type': 'ineq', 'fun': self.constraints_obj[-1].constraint}) #constraints za scipy.optimize.minimize
-
-            
-        constraints=self.ratio_constraints(constraints)
-
-        return tuple(constraints)
-    
-
-    def cons_COBYLA(self,sections_to_opt) -> tuple:
-
-        constraints=[]
-
-        for i in sections_to_opt:
-
-            ind_o_tuple=0
-            
-            for tuple_in_bnds in structure_obj.sections[i-1].bounds:     # tuple_in_bnds - tuple koji sadrzi jednu donju i jednu gornju granica za jedan parametar
-
-                
-                temp_obj=Constraints_bounds(structure_obj.sections[i-1], tuple_in_bnds, ind_o_tuple) #salje se greda da se ima pokazivac na zivi objekt, pa da se podaci osvjeze. ind_o_tuple - index tuple-a u tuple-u tuple-a.
-                self.constraints_obj.append(temp_obj)
-
-                constraints.append({'type': 'ineq', 'fun':self.constraints_obj[-1].constraint_lower})
-                constraints.append({'type': 'ineq', 'fun':self.constraints_obj[-1].constraint_upper})
-
-                ind_o_tuple+=1
-
-        for i in structure_obj.beams:   #kreiranje i definiranje ogranicenja (constraints) za sve grede - sigma dop
-            
-            temp_obj=Constraint_stress(i)
-            self.constraints_obj.append(temp_obj)        #lista objekata constraints
-          
-            constraints.append({'type': 'ineq', 'fun': self.constraints_obj[-1].constraint}) #constraints za scipy.optimize.minimize
-            
-        constraints=self.ratio_constraints(constraints)
-
-        return tuple(constraints)
-
-    def ratio_constraints(self,constraints): #izlaz je List razlicitih metodi constraints-ova
-
-        '''New paragraph - constraint in form of ratios 1.6.2022. v0.33
-        ------------------------------------------------'''
-        for i in sections_to_opt:
-
-            section=structure_obj.sections[i-1]
-            
-            for key in section.dict_o_cons: #sto ako dictionary ne postoji? vjerojatno samo preskace beam, i ne stvara constraints.. provjeriti.. 
-                
-                tuple_constr=section.dict_o_cons.get(key)
-                min_value=tuple_constr[0]
-                max_value=tuple_constr[1]
-
-                which=0
-                temp_obj=Constraint_Ratio(section, key, which,'GT' , min_value)
-                self.constraints_obj.append(temp_obj)
-
-                constraints.append({'type': 'ineq', 'fun': self.constraints_obj[-1].constraint}) 
-
-                which=1
-                temp_obj=Constraint_Ratio(section, key, which,'LT' , max_value)
-                self.constraints_obj.append(temp_obj)
-
-                constraints.append({'type': 'ineq', 'fun': self.constraints_obj[-1].constraint})
-
-        return constraints
-
-        '''------------------------------------------------'''
-            
-    def objfun(self,parameters):
-
-        param_list=self.chunks(parameters, self.num_o_param)
-
-        self.mass=0
-        
-        for i in sections_to_opt: #i je zapravo - ID odnosno redni broj section-a. Trebaju to dvoje biti istoznacni. 
-
-            #section_index=sections_to_opt.index(i) #ovo nema smisla
-
-            section_index=sections_to_opt.index(i)  #vraca indeks - koji kazuje za vrijednost i gdje i na kojem mjestu. 
-            
-            structure_obj.sections[i-1].calculate(param_list[section_index])
-
-            for beam in structure_obj.beams:
-
-                if beam.prop.sect.ID==i:
-                    
-                    beam.calculate_k_ij()
-                    
-
-        structure_obj.calculate_all()
-        
-        for i in structure_obj.beams:
-            
-            self.mass+=i.prop.sect.A*i.length       #zasad se masa racuna samo preko povrsine clanova - dakle to se nastoji minimizirati - lako se doda gustoca
-
-        print('Masa: ' + str(self.mass))
-            
-        return self.mass
-
-    def calc_opt_SLSQP(self,parameters_0,cons,bnds):
-
-        print(cons)
-        self.solution = sco.minimize(self.objfun, parameters_0, constraints=cons, bounds=bnds, method='SLSQP')
-
-        print(self.solution.x)
-        print(self.solution.success)
-        print(self.solution.message)
-        print('')
-        print('Raw optimize.OptimizeResult: \n')
-        print(self.solution)
-        print('')
-
-    def calc_opt_COBYLA(self,parameters_0,cons):
-
-        self.solution = sco.minimize(self.objfun, parameters_0, constraints=cons,  method='COBYLA', options={'rhobeg': 10.0, 'maxiter': 2000})
-
-        print(self.solution.x)
-        print(self.solution.success)
-        print(self.solution.message)
-        print('')
-        print('Raw optimize.OptimizeResult: \n')
-        print(self.solution)
-        print('')
-
-    def chunks(self, parameters, num_o_param)->List[List]:
-
-        stop=0
-        output=[]
-        for i in num_o_param:           #self.num_o_param niz treba utvrditi prema tipovima greda
-            
-            stop=stop+i
-            output.append(parameters[stop - i:stop])
-            
-        return output   #izlaz je lista listi
-    
-
-def word_splitting(line_string:str)->List[str]:
-
-    '''Function used for stripping and splitting words from textual file. Mainly used in creation of instances of a class.'''
-
-    line_string=line_string.strip()     #cisti pocetak od razmaka
-
-    line_list=line_string.split(",")    #razdvaja na pojedine rijeci
-
-    i=0
-    for word in line_list:
-        word=word.strip()
-        word=word.strip('"')
-        line_list[i]=word
-        i+=1
-        
-    return line_list
-
-#CREATION FUNCTIONS - razne funkcije za kreiranje niza objekata na globalnoj razini...
-
-def node_creation(line_list:List[str]):
-
-    '''Function that creates NODE OBJECTS from input file.'''
-
-    global numer_node, structure_obj
-
-    node_name="Node"+str(numer_node)                                    #Automatsko dodavanje imena cvoru
-    structure_obj.nodes.insert(numer_node,Node(node_name,line_list))    #KREIRANJE CVORA - staviti metodu append
-
-    numer_node+=1                   #Povecavanje brojaca za 1
-
-
-def material_creation(line_list):
-
-    '''Function that creates MATERIAL OBJECTS from input file.'''
-
-    global numer_mat, structure_obj
-    global name_mat             #trenutno ovaj redak nije funkcionalan
-
-    structure_obj.materials.insert(numer_mat,Material(line_list)) #pogledati datoteku sto je koji element niza line_list
-    numer_mat+=1
-
-
-def beam_creation(line_list):   #detaljnije pojasnjenje strukture - vidi u node_creation funkciji. Tamo je opisan pojedini redak - ovdje se ponavlja...
-
-    '''Function that creates BEAM OBJECTS from input file.'''
-
-    global numer_beam                                                             #trenutno ovaj jedan redak nije funkcionalan
-    global name_beam, structure_obj
-
-
-    beam_name="Beam"+str(name_beam)                                         # Vidjeti je li potrebno??? Moze bit, ali jedino ako se uz to omoguci unos kao dodatna mogucnost.
-    structure_obj.beams.insert(numer_beam,Beam(beam_name,numer_beam,line_list))
-
-    name_beam+=1
-    numer_beam+=1
-
-
-def section_type(line_list):
-
-    '''Function that is actually a switch-case. Dependent on the read type of the section, it instatiates the right one'''
-
-    chooser=line_list[1]
-
-    global numer_sect, structure_obj
-
-    if chooser=="I_Beam":
-        structure_obj.sections.insert(numer_sect,I_Beam(line_list))
-    elif chooser=="T_Beam_on_plate":
-        structure_obj.sections.insert(numer_sect,T_Beam_on_plate(line_list))
-    elif chooser=="C_Beam":
-        structure_obj.sections.insert(numer_sect,C_Beam(line_list))
-    elif chooser=="CircBar":
-        structure_obj.sections.insert(numer_sect,CircBar(line_list))
-    elif chooser=="CircTube":
-        structure_obj.sections.insert(numer_sect,CircTube(line_list))
-    elif chooser=="Rectangle":
-        structure_obj.sections.insert(numer_sect,Rectangle(line_list))
-    elif chooser=="TableSection":
-        structure_obj.sections.insert(numer_sect,TableSection(line_list))
-
-def section_creation(line_list):
-
-    '''Function that creates SECTION OBJECTS from input file.'''
-
-    global numer_sect, name_sect               #trenutno ovaj redak nije funkcionalan
-    global lines, tpi
-
-    section_type(line_list)
-    numer_sect+=1
-
-
-def property_creation(line_list):
-
-    '''Function that creates PROPERTY OBJECTS from input file by assigning section and material to it. Also, takes parameter called "cost".
-        That way, it is predicted that cost optimization is possible to achieve.'''
-
-    global numer_prop
-
-    structure_obj.properties.insert(numer_prop, Property(line_list)) #PROBLEM?
-    numer_prop+=1
-
-
-def load_creation(line_list):
-
-    '''Function that calls proper beam object and creates loads that act on it'''
-
-    global numer_load, structure_obj
-
-    section_ID=int(line_list[2])
-    structure_obj.beams[section_ID-1].create_load(line_list)
-
-
-def switch_type(line_list):
-
-    '''Function that calles appropriate function for creation of objects from input file.'''
-    chooser=line_list[0]
-    if chooser=="Node":
-        node_creation(line_list)
-    elif chooser=="Material":
-        material_creation(line_list)
-    elif chooser=="Section":
-        section_creation(line_list)
-    elif chooser=="Property":
-        property_creation(line_list)
-    elif chooser=="Load":
-        load_creation(line_list)
-    elif chooser=="Beam":
-        beam_creation(line_list)
-
-def optim_creation(line_list):
-
-    '''Function that stores data from text input file to objects connected with beams in order to create bounds and constraints upon instantiating optimization_obj'''
-
-    section_ID=int(line_list[0])
-    
-    for section in structure_obj.sections:
-
-        if section.ID == section_ID:
-            
-            if isinstance(section, I_Beam):
-                
-                section.optim(line_list[1:13])
-                num_o_param.append(6)
-
-            if isinstance(section, T_Beam_on_plate):
-                
-                section.optim(line_list[1:13])
-                num_o_param.append(4)
-            
-            if isinstance(section, C_Beam):
-
-                section.optim(line_list[1:9])
-                num_o_param.append(4)
-
-            if isinstance(section, CircBar):
-
-                section.optim(line_list[1:3])
-                num_o_param.append(1)
-
-            if isinstance(section, CircTube):
-                
-                section.optim(line_list[1:5])
-                num_o_param.append(2)
-
-            if isinstance(section, Rectangle):
-
-                section.optim(line_list[1:9])
-                num_o_param.append(4)
-                
-        '''For creation of Ratio constraints - 1.6.2022. v0.33 '''
-        for element in line_list:
-            if element=='BF/TF':
-                ind=line_list.index(element)
-                section.ratio_constraint(line_list[ind:ind+3])              
-            elif element=='HW/TW':
-                ind=line_list.index(element)
-                section.ratio_constraint(line_list[ind:ind+3])
-            elif element=='BF/HW':
-                ind=line_list.index(element)
-                section.ratio_constraint(line_list[ind:ind+3])
-            elif element=='TF/TW':
-                ind=line_list.index(element)
-                section.ratio_constraint(line_list[ind:ind+3])
-
-def calculate_problem():
+def calculate_problem(structure_obj:Structure):
 
     '''Method used for optlib_pymoo.py for calling of calculation of already initialized problem. Problem is initialized by loading data from input text file.
     and is then connected via optlib_pymoo.py to a pymoo optimization module'''
 
-    phi=structure_obj.global_equation()
     structure_obj.calculate_all()
 
 def get_stress_cons_lt_0() -> List[float]:
@@ -1083,236 +868,19 @@ def get_stress_cons_lt_0() -> List[float]:
         Results are returned in a list (pymoo) to be saved in "out" dictionary like this: out['G']=ao.get_stress_cons_lt_0() where ao is from: import Analiza_okvira as ao. '''
 
     beam_stress_cons=[]
-    
+
     for beam in structure_obj.beams:
         con_value = beam.max_s - beam.mat.sigmadop
         beam_stress_cons.append(con_value)
-        
+
         return beam_stress_cons
 
 def get_stress_cons_gt_0() -> List[float]:
 
     beam_stress_cons=[]
-    
+
     for beam in structure_obj.beams:
         con_value = beam.max_s - beam.mat.sigmadop
         beam_stress_cons.append(con_value)
-        
+
         return beam_stress_cons
-
-#       GlAVNI DIO PROGRAMA
-#------------------------------------
-
-#PUTANJA DO TEKSTUALNE ULAZNE DATOTEKE (BROWSE)
-
-
-while 1:
-    try:
-        path=input("Upisati put do ulazne datoteke:")
-        path=path.replace('\\','\\\\')
-        print(path)
-        inp_file=open(path,"rt")
-    except:
-        print("Greska. Ili datoteka ne postoji, ili je unesena putanja kriva.")
-        print("Provjeriti ispravnost putanje i postojanje datoteke!")
-    else: break
-
-# UNOS KORAKA DISKRETIZACIJE! MOZE ICI IZ ULAZNE DATOTEKE!
-
-while 1:
-    try:
-        kd=float(input("Unesite korak diskretizacije u jedinicama koordinatnog sustava: "))
-        if kd<0:
-            raise ValueError()
-    except:
-        print('Korak diskretizacije nije prikladan.')
-    else: break
-    
-# ODABIR OPTIMIZACIJSKE METODE/OPTIMIZACIJSKOG ALGORITMA
-
-while 1:
-    try:
-        optim_algorithm=str(input("Odabir optimizacijske metode/algoritma. Unesite 'C' za COBYLA ili 'S' za SLSQP: "))
-        optim_algorithm=optim_algorithm.upper()
-        if optim_algorithm=='S':
-            optim_algorithm='SLSQP'
-        elif optim_algorithm=='C':
-            optim_algorithm='COBYLA'
-            
-    except:
-        pass
-    else: break
-
-
-# DEFINICIJA NUKMERATORA ID-a ZA STVARANJE DEFAULTNIH IMENA AKO NE POSTOJE
-
-numer_node=1
-numer_mat=1
-name_mat=1
-numer_sect=1
-name_sect=1
-numer_prop=1
-name_prop=1
-numer_load=1
-name_load=1
-numer_beam=1
-name_beam=1
-
-#DEFINIRANJE POLJA OBJEKATA
-
-nodes = []
-materials = []
-sections = []
-properties = []
-beams = []
-
-structure_obj=Structure(nodes,materials,sections,properties,beams)
-
-#DEFINIRANJE NEKIH GLOBALNIH BROJACA I LISTA
-
-tpi=0                       #brojac koji broji kroz tekstualnu datoteku - tpi - text position index
-lines= []                   #buduce linije tekstualne datoteke
-
-#PROLAZENJE KROZ TEKSTUALNU DATOTEKU I ZATVARANJE DATOTEKE
-
-for line_string in inp_file:
-    lines.append(line_string)               #lines sada sadrze sav tekst tekstualne datoteke
-inp_file.close()
-
-#CITANJE BROJA OBJEKATA I KREIRANJE ISTIH POZIVANJEM FUNKCIJA
-
-quantities_read=False
-curr=0
-num_o_objects=[]
-sections_to_opt=[]
-num_o_param=[]
-
-while tpi<len(lines):
-
-    if lines[tpi][0]!="#" and not quantities_read:  #u num_o_objects se pamti broj objekata - cvorova, presjeka, greda...
-        quantities_read=True
-        line_string=lines[tpi]                      #Prvih linija komentara moze biti vise, pa kad naide na liniju bez prvog znaka # - cita koliko ima kojih objekata
-        line_string=line_string.strip()
-        line_list=line_string.split(",")
-        i=0
-        for num in line_list:
-            line_list[i]=int(num)
-            i+=1
-        num_o_objects=line_list
-
-        #print(num_o_objects)                        #RADI KONTROLE
-
-    elif lines[tpi][0]!="#" and quantities_read:
-
-        if curr==0:                                 #NODE
-
-            for i in range(0,num_o_objects[curr]):
-
-                line_string=lines[tpi]
-                line_list=word_splitting(line_string)
-                node_creation(line_list)
-                tpi+=1
-
-        elif curr==1:                                 #MATERIAL
-
-            for i in range(0,num_o_objects[curr]):
-
-                line_string=lines[tpi]
-                line_list=word_splitting(line_string)
-                material_creation(line_list)
-                tpi+=1
-
-        elif curr==2:                                 #SECTION
-
-            for i in range(0,num_o_objects[curr]):
-
-                line_string=lines[tpi]
-                line_list=word_splitting(line_string)
-                section_creation(line_list)
-                tpi+=1
-
-        elif curr==3:                                 #PROPERTY
-
-            for i in range(0,num_o_objects[curr]):
-
-                line_string=lines[tpi]
-                line_list=word_splitting(line_string)
-                property_creation(line_list)
-                tpi+=1
-
-        elif curr==4:                                 #BEAM
-
-            for i in range(0,num_o_objects[curr]):
-
-                line_string=lines[tpi]
-                line_list=word_splitting(line_string)
-                beam_creation(line_list)
-                tpi+=1
-
-        elif curr==5:                                 #LOAD
-
-            for i in range(0,num_o_objects[curr]):
-
-                line_string=lines[tpi]
-                line_list=word_splitting(line_string)
-                load_creation(line_list)
-                tpi+=1
-
-        elif curr==6:                               #OPTIMIZATION
-
-            for i in range(0, num_o_objects[curr]):
-
-                line_string=lines[tpi]
-                line_list=word_splitting(line_string)
-                sections_to_opt.append(int(line_list[0]))        #u sections_to_opt se spremaju presjeci koje ce se optimizirati. Dakle, ne optimiziraju se grede vec presjeci!
-                optim_creation(line_list)
-                tpi+=1
-
-
-        curr+=1
-
-    tpi+=1
-
-
-
-
-# KREIRANJE OBJEKTA KLASE STRUCTURE I ZAPOCINJANJE PRORACUNA
-
-
-phi=structure_obj.global_equation()       #PROVJERENA UVJETOVANOST MATRICE ZA NEKE PROBLEME, I U REDU!
-                                            #OVA METODA SE INACE POZIVA IZ CALCULATE ALL....
-                                            #SVE BI OSTALO TREBALO BITI DOBRO - OSIM GLOBAL_EQUATION... TO PROVJERITI.
-structure_obj.calculate_all()
-
-print('Pocetna naprezanja: \n')
-
-for i in structure_obj.beams:
-    print(' ' + str(i.max_s))
-
-print('Konacna naprezanja: \n')
-for i in structure_obj.beams:
-    print(' ' + str(i.max_s))
-
-print('')
-print('Konacni parametri: \n')
-
-for i in structure_obj.beams:
-    print(' Greda: ' + i.name)
-    print(i.prop.sect.parameters)
-
-optimization_obj=Optimization(sections_to_opt,num_o_param,optim_algorithm)
-
-#za DEBUG i konacna vizuru rezultata
-
-print('Konacna naprezanja: \n')
-for i in structure_obj.beams:
-    print(' ' + str(i.max_s))
-
-print('')
-print('Konacni parametri: \n')
-
-for i in structure_obj.beams:
-    print(' Greda: ' + i.name)
-    print(i.prop.sect.parameters)
-
-'''Za provjeru objekata - odlicna naredbe - object.__dict__ i isinstance(object,class)'''

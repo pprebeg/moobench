@@ -8,13 +8,24 @@ from pymoo.util.termination.default import SingleObjectiveDefaultTermination, Mu
 
 
 
+class PymooConstraint():
+    def __init__(self, con:DesignConstraint):    #tu bi se trebalo kod constrainta koristiti ono kaj je moja ideja bila na seminarskom.. con mora biti funkcija  
+        self._criteria:DesignConstraint=con
+
+    @property
+    def con(self)->DesignConstraint:
+        return self._criteria
+
+    def get_con_value(self) ->float: 
+        return self.con.value_lt_0 
+
 class WrappedPymooProblem(ElementwiseProblem):
 
     '''Class that inherits from ElementwiseProblem in order to instantiate an object that will define necessary methods for pymoo algorithm calculations. In the constructor - using super() function, 5 obligatory
     arguments are passed. Those are: how many design variables are there, how many objectives and constraints, as well as arrays of lower and upper boundaries. On top of that, two callback functions are passed. Those are
     called in _evaluate method. Crucial method that starts the calculation of problem.'''
 
-    def __init__(self, desvars:List[DesignVariable], objs:List[DesignObjective], cons:List[DesignConstraint], xl:np.ndarray, xu:np.ndarray, callback_evaluate, callback_get_current_solution): #sve DesignVariable, DesignConstraint i ostalo pohranjeno je u OptimizationProblem klasi. Ako ce trebati bas Pymoo wrapperi tih klasa, onda se ovdje budu dodijelile.
+    def __init__(self, desvars:List[DesignVariable], objs:List[DesignObjective], cons:List[PymooConstraint], xl:np.ndarray, xu:np.ndarray, callback_evaluate, callback_get_current_solution): #sve DesignVariable, DesignConstraint i ostalo pohranjeno je u OptimizationProblem klasi. Ako ce trebati bas Pymoo wrapperi tih klasa, onda se ovdje budu dodijelile.
 
         self._callback_evaluate=callback_evaluate
         self._callback_get_current_solution=callback_get_current_solution
@@ -30,23 +41,6 @@ class WrappedPymooProblem(ElementwiseProblem):
 
 
     def _evaluate(self, x:np.ndarray, out, *args, **kwargs):
-
-
-##        #IZMJENA DIZAJNERSKIH PARAMETARA NA TEMELJU ONOG ŠTO JE DOBIVENO IZ PYMOO-A..
-##        #x je ulazna vrijednost - algoritam daje x kao novi ulaz. Treba promijeniti vrijednosti x varijabli. Tako ocito radi algoritam. i treba se promijeniti u validan izlaz pozivom metode Analize_okvira
-##        ix=0
-##        for desvar in self._desvars:
-##          desvar._dv.value=x[ix]
-##          ix+=1
-##
-##        #POZIV proracuna kriterijskih funkcija - one ce pozvati proracun analyize metode AnalysisExecutora da bi se utvrdile nove vrijednosti modela i funkcija cilja i ogranicenja
-##        #Dohvacanje tih vrijednosti podrazumijeva proracun koji se od tamo zove. On ce naravno promijeniti vrijednosti - parametara - pa posljedicno naprezanja i masa..
-##        #ogranicenja i funkcije cilja naravno to dohvacaju putem callback konektora.
-##        for obj in self._objs:
-##            obj.criteria_fun_pymoo(x)
-##        for con in self._cons:
-##            con.criteria_fun_pymoo(x)
-
         
         self._callback_evaluate(x)
         
@@ -57,15 +51,16 @@ class WrappedPymooProblem(ElementwiseProblem):
 
         for i in range(self.n_obj):
             flist.append(solution.get_obj_value(i))               #numpy lista rjesenja
-        print(flist)
+
         for i in range(self.n_constr):
-            glist.append(solution.get_con_value(i))
+            glist.append(self._cons[i].get_con_value())
 
-        #out["F"] = np.column_stack(flist) #jednostavno - sprema numericke vrijednosti - svaki redak predstavlja jednorješenje, svaki stupac varijante iste varijable koje se istovremeno izracunavaju - toga nema kod ElementwiseProblem-a.
         out['F']=np.array(flist)
-
-        #out["G"] = np.column_stack(glist)
+        
         out['G']=np.array(glist)
+
+        #print(x)
+
 
 
 class PymooOptimizationAlgorithm(OptimizationAlgorithm):
@@ -120,10 +115,16 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
         xl, xu=self._get_bounds(desvars)    #kreiranje niza za donje i gornje granice varijabli
 
+        #Constraints
+        pymoo_cons:List[PymooConstraint]=[]
+        for con in constraints:
+            pymoocon = PymooConstraint(con)
+            pymoo_cons.append(pymoocon)
+
         #Algorithm
         alg = self._algorithm #ovaj bi objekt algorithm trebao instancirati korisnik u korisnickom programu kada definira algoritam optimizacije
 
-        problem=WrappedPymooProblem(desvars, objectives, constraints, xl, xu, callback_evaluate, callback_get_current_solution) #ovaj callback_evaluate
+        problem=WrappedPymooProblem(desvars, objectives, pymoo_cons, xl, xu, callback_evaluate, callback_get_current_solution) #ovaj callback_evaluate
 
         return problem
 
@@ -141,7 +142,10 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
     def _default_termination_criterion(self):
 
-        if self._method=='nsga2':
+        default_single=['ga', 'brkga', 'de', 'nelder-mead', 'pattern-search', 'cmaes','es','sres','isres']
+        default_multi=['nsga2','rnsga2','nsga3','unsga3','rnsga3','moead','agemoea','ctaea']
+
+        if self._method in default_multi:
             termination = MultiObjectiveDefaultTermination(
             x_tol=1e-8,
             cv_tol=1e-6,
@@ -151,15 +155,15 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
             n_max_gen=1000,
             n_max_evals=100000)
 
-##    elif self._method==
-##    termination = SingleObjectiveDefaultTermination(
-##    x_tol=1e-8,
-##    cv_tol=1e-6,
-##    f_tol=1e-6,
-##    nth_gen=5,
-##    n_last=20,
-##    n_max_gen=1000,
-##    n_max_evals=100000)
+        elif self._method in default_single:
+            termination = SingleObjectiveDefaultTermination(
+            x_tol=1e-8,
+            cv_tol=1e-6,
+            f_tol=1e-6,
+            nth_gen=5,
+            n_last=20,
+            n_max_gen=1000,
+            n_max_evals=100000)
 
         return termination
 
@@ -193,7 +197,7 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
         else:
             termination = self._default_termination_criterion()
 
-        sol = minimize(problem, self._algorithm, termination, **self._alg_options) #ovo bi trebalo raditi baš kako treba! - termination=None, seed=None, verbose=False, display=None, callback=None, return_least_infeasible=False, save_history=False
+        sol = minimize(problem, self._algorithm, termination, seed=1, **self._alg_options) #ovo bi trebalo raditi baš kako treba! - termination=None, seed=None, verbose=False, display=None, callback=None, return_least_infeasible=False, save_history=False
 
         self._sol=sol #Sprema se pymoo.Result - klasa pymoo-a koja cuva rjesenje!
 

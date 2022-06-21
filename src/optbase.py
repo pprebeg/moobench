@@ -38,7 +38,7 @@ class BasicGetSetConnector():
     def value(self,value):
         pass
 
-class CalbackGetSetConnector(BasicGetSetConnector): #jednostavno ce dohvacati odredjene funkcije koje ce predstavljati get i set funkcije value property-ja
+class CallbackGetSetConnector(BasicGetSetConnector): #jednostavno ce dohvacati odredjene funkcije koje ce predstavljati get i set funkcije value property-ja
 
     def __init__(self,cb_get,cb_set):
         self._cb_get = cb_get
@@ -52,7 +52,7 @@ class CalbackGetSetConnector(BasicGetSetConnector): #jednostavno ce dohvacati od
     def value(self,value):
         self._cb_set(value)
 
-class CalbackGetConnector(BasicGetConnector): #Get connectori se koriste za vrijednosti kojih samo treba return vrijednosti - to su primjerice ogranicenja i funkcije cilja 
+class CallbackGetConnector(BasicGetConnector): #Get connectori se koriste za vrijednosti kojih samo treba return vrijednosti - to su primjerice ogranicenja i funkcije cilja 
 
     def __init__(self,cb_get):
         self._cb_get = cb_get
@@ -283,6 +283,17 @@ class RatioDesignConnector(BasicGetConnector):
     def value(self):
         return self._numerator.value/self._denominator.value
 
+class RatioCallbackConnector(BasicGetConnector):
+
+    def __init__(self, num:DesignVariable, denom:DesignVariable):
+        pass
+        self._numerator:DesignVariable = num
+        self._denominator:DesignVariable = denom
+
+    @property
+    def value(self):
+        return self._numerator.value/self._denominator.value
+
 class OptimizationProblemSolution():
     def __init__(self, num_var, num_obj,num_constr):
         self._dvs = np.zeros(num_var)
@@ -336,7 +347,7 @@ class OptimizationAlgorithm(ABC): #doslovce klasa koja samo sluzi tome da bude n
     def optimize(self,desvars: List[DesignVariable],
                  constraints: List[DesignConstraint],
                  objectives: List[DesignObjective],
-                 x0:np.ndarray,calback_evaluate,calback_get_curren_solution)->List[OptimizationProblemSolution]:
+                 x0:np.ndarray,Callback_evaluate,Callback_get_curren_solution)->List[OptimizationProblemSolution]:
         pass
 
 class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je vecina funkcionalnosti implementirana
@@ -394,6 +405,9 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
     @property
     def num_obj(self):
         return len(self._objectives)
+
+    def get_desvar(self,ix):
+        return self._desvars[ix]
 
     @property
     def opt_algorithm(self):

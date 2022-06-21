@@ -16,8 +16,8 @@
 	12, 4000.0, 0.0
 # Material, ID, name, E, nu, density [kgm-3], sigmadop
 	1, steel, 204000 , 0.3, 8000, 200
-# Section, ID, type, name, param
-	1, I_Beam, "T1000x12 400x18", 1000, 12, 2250, 10, 400, 18
+# Section, ID, type, name, param, I_Beam: h,t,w1,t1,w2,t2
+	1, I_Beam, "T1000x12 400x18", 1000, 12, 2250, 10, 400, 22
 	2, I_Beam, "T800x10 300x14", 800, 10, 2250, 10, 300, 14
 	3, I_Beam, "T1000x12 400x18 dno", 1000, 12, 2250, 12, 400, 18
 # Property, ID, name, mat, sect
@@ -42,7 +42,7 @@
 	15, 2, 8, 1
 	16, 1, 7, 1
 # Load, ID, "F/q/qlinl/qlinr/M/anal", beam id, value, "aditional specific parameters"
-	1, q, 4, 292.5 
+	1, q, 4, 292.5 res
 	2, q, 7, 292.5
 	3, q, 10, 292.5
 	4, q, 15, 45.0
