@@ -290,14 +290,14 @@ class Rectangle(Section):
 
         self.bounds=(b1, b2, b3, b4)
 
-class TableSection(Section):    #Zasad još nije sasvim funkcionalno - takvi se section nemogu optimizirati.
+class TableSection(Section):    #TAKVI SE SECTONI ne mogu optimizirati 
 
-    '''Class that creates table section. Table sections are provided with area and moments of inertia at initializing. Technical manuals often incorporate that data.'''
+    '''Class that creates table section. Table sections are provided with area and moments of inertia at initializing. Technical manuals often incorporate that data. THEY DON'T HAVE PARAMETERS THAT CAN'T BE CHANGED'''
 
     def __init__(self,line_list:List[str]):
 
-        self.name=line_list[0]
         self.ID=int(line_list[0])
+        self.name=line_list[2]
         self.A=float(line_list[3])
         self.Iy=float(line_list[4])
         self.Wy=float(line_list[5])
@@ -338,28 +338,35 @@ class Beam():
     def __init__(self,beam_name,numer_beam,line_list:List[str], structure_obj, ):
 
 
-        node_num1=int(line_list[1])             #Ovo su cjelobrojni indeksi odgovarajucih objekata u njihovim listama: nodes i properties listama
-        node_num2=int(line_list[2])
-        prop=int(line_list[3])
+        node_num1 = int(line_list[1])             #Ovo su cjelobrojni indeksi odgovarajucih objekata u njihovim listama: nodes i properties listama
+        node_num2 = int(line_list[2])
+        prop = int(line_list[3])
 
-        self.name=beam_name                     #Name se mozda moze koristiti i u vizualizaciji - nazivi greda pojedinih.
-        self.node1=structure_obj.nodes[node_num1-1]           #Zasad je slozeno u strukturi pamcenje pozicije preko ID-a pojedinog node-a. To znaci da se id treba dodijeljivat automatski.. od 1 do kolko ih ima... i da to korespondira s polozajem u listi.
-        self.node2=structure_obj.nodes[node_num2-1]
-        self.length=self.length_calc(self.node1,self.node2)
-        self.m12=0
-        self.m21=0
-        self.prop=structure_obj.properties[prop-1]
+        self.name = beam_name                     #Name se mozda moze koristiti i u vizualizaciji - nazivi greda pojedinih.
+        self.node1 = structure_obj.nodes[node_num1-1]           #Zasad je slozeno u strukturi pamcenje pozicije preko ID-a pojedinog node-a. To znaci da se id treba dodijeljivat automatski.. od 1 do kolko ih ima... i da to korespondira s polozajem u listi.
+        self.node2 = structure_obj.nodes[node_num2-1]
+        self.length = self.length_calc(self.node1,self.node2)
+        self.m12 = 0
+        self.m21 = 0
+        self.prop = structure_obj.properties[prop-1]
         self.calculate_k_ij()
-        num_o_fields=m.ceil(self.length/structure_obj.kd)             #num_o_fields - broj polja na koja je podijeljena greda, vezano uz duljinu vektora self.intrinsic_diagram. kd - korak diskretizacije"
-        self.kd_local=self.length/num_o_fields          #kd_local - lokalni korak diskretizacije"
-        self.x=np.array(np.arange(0,self.length+self.kd_local,self.kd_local))   #np.arrange se mora koristiti za kreiranje takvog niza. Range može samo cjelobrojne brojeve imati za argumente. +self.kd_local"
-        self.intrinsic_diagram=np.zeros(len(self.x))
-        self.intrinsic_diagram_w_trap:np.ndarray=np.zeros(len(self.x))
-        self.max_s=0
+        num_o_fields = m.ceil(self.length/structure_obj.kd)             #num_o_fields - broj polja na koja je podijeljena greda, vezano uz duljinu vektora self.intrinsic_diagram. kd - korak diskretizacije"
+        self.kd_local = self.length/num_o_fields          #kd_local - lokalni korak diskretizacije"
+        self.x = np.array(np.arange(0,self.length+self.kd_local,self.kd_local))   #np.arrange se mora koristiti za kreiranje takvog niza. Range može samo cjelobrojne brojeve imati za argumente. +self.kd_local"
+        self.intrinsic_diagram = np.zeros(len(self.x))
+        self.intrinsic_diagram_w_trap:np.ndarray = np.zeros(len(self.x))
+        
+        self.max_moment_independently = 0
+        
+        self.max_s = 0
+        self.y_cg = None
 
     @property
     def sigma_limit(self):
         return self.prop.mat.sigmadop
+
+    def max_stress_of_intrinsic_diagram(self):
+        return np.abs(self.intrinsic_diagram).max
 
     def get_stress_over_limit(self):
         
@@ -367,46 +374,46 @@ class Beam():
 
     def length_calc(self,node1:Node,node2:Node) -> float:
 
-        node_vector=node2.coords-node1.coords
-        length_o_beam=np.linalg.norm(node_vector)
+        node_vector = node2.coords-node1.coords
+        length_o_beam = np.linalg.norm(node_vector)
 
         return float(length_o_beam)
 
     def calculate_k_ij(self):
 
-        self.k_ij:float=2*self.prop.mat.E*self.prop.sect.Iy/self.length
+        self.k_ij:float = 2*self.prop.mat.E*self.prop.sect.Iy/self.length
 
     def create_load(self,line_list:List[str]):
 
-        load_type=line_list[1]
-        value=float(line_list[3])
+        load_type = line_list[1]
+        value = float(line_list[3])
 
-        if load_type=="F":
-            placement=float(line_list[4])
-            m12=-value*placement*self.length*(1-placement)**2
-            m21=value*(1-placement)*self.length*(placement)**2          #FORMULE IZ IP1 PRIRUCNIKA, STR. 523.
+        if load_type == "F":
+            placement = float(line_list[4])
+            m12 = -value*placement*self.length*(1-placement)**2
+            m21 = value*(1-placement)*self.length*(placement)**2          #FORMULE IZ IP1 PRIRUCNIKA, STR. 523.
 
-        elif load_type=="q":
-            m12=-value*(self.length**2)/12
-            m21=-m12
+        elif load_type=="q":                                        #Jedinica sile / jedinica duljine
+            m12 = -value*(self.length**2)/12
+            m21 = -m12
 
         elif load_type=="qlinl":                                    #trokutasta raspodjela opterecenja se spusta slijeva nadesno
-                m12=-value*(self.length**2)/20
-                m21=value*(self.length**2)/30
+                m12 = -value*(self.length**2)/20
+                m21 = value*(self.length**2)/30
 
         elif load_type=="qlinr":                                    #trokutasta raspodjela opterecenja se spusta zdesna nalijevo
-                m12=-value*(self.length**2)/30
-                m21=value*(self.length**2)/20
+                m12 = -value*(self.length**2)/30
+                m21 = value*(self.length**2)/20
 
         elif load_type=="M":                                        #MOGUCE DODATI JOS OPCIJA?
-            m12=value/2
-            m21=m12
+            m12 = value/2
+            m21 = m12
 
         elif load_type=="anal":
-            m=line_list[3]
+            m = line_list[3]
 
-        self.m12=self.m12+m12
-        self.m21=self.m21+m21
+        self.m12 = self.m12+m12
+        self.m21 = self.m21+m21
 
         self.moment_diagram(load_type,value)
 
@@ -416,56 +423,67 @@ class Beam():
 
         if load_type=="F":
 
-            placement=float(line_list[4])
-            peak_loc=1+m.floor(placement*self.length/self.kd_local)         #broj koraka diskretizacije do vrha mometnog dijagrama od konc. sile"
-            x1=self.x[0:peak_loc]                                  #ovo se zove: slicing an array. Potrebno je jer postoje dva pravca, dakle dvije domene."
-            x2=self.x[peak_loc:]
-            moment_diag1=np.zeros(len(x1))
-            moment_diag2=np.zeros(len(x2))
-            moment_diag1+=(1-placement)*value*x1
-            moment_diag2+=placement*value*(self.length-x2)
-            self.intrinsic_diagram+=np.concatenate((moment_diag1,moment_diag2), axis=None)
+            placement = float(line_list[4])
+            peak_loc = 1+m.floor(placement*self.length/self.kd_local)         #broj koraka diskretizacije do vrha mometnog dijagrama od konc. sile"
+            x1 = self.x[0:peak_loc]                                  #ovo se zove: slicing an array. Potrebno je jer postoje dva pravca, dakle dvije domene."
+            x2 = self.x[peak_loc:]
+            moment_diag1 = np.zeros(len(x1))
+            moment_diag2 = np.zeros(len(x2))
+            moment_diag1 += (1-placement)*value*x1
+            moment_diag2 += placement*value*(self.length-x2)
+            self.intrinsic_diagram += np.concatenate((moment_diag1,moment_diag2), axis = None)
 
         elif load_type=="q":
 
-            self.intrinsic_diagram+=-value/2*self.x**2+value*self.length/2*self.x   #parabola koja opisuje momentni dijagram"
+            self.intrinsic_diagram +=  -value/2*self.x**2+value*self.length/2*self.x   #parabola koja opisuje momentni dijagram"
 
         elif load_type=="qlinr":
 
-            self.intrinsic_diagram+=-1/6*value/self.length*self.x**3+1/6*value*self.length*self.x
+            self.intrinsic_diagram += -1/6*value/self.length*self.x**3+1/6*value*self.length*self.x
 
         elif load_type=="qlinl":
 
-            moment_diag=np.zeros(len(self.x))
-            moment_diag+=-1/6*value/self.length*self.x**3+1/6*value*self.length*self.x  #izracun na isti nacin kao i qlinr, samo koristenje numpy.flip da zamijeni vrijednosti oko y osi
-            moment_diag=np.flip(moment_diag)
-            self.intrinsic_diagram+=moment_diag
+            moment_diag = np.zeros(len(self.x))
+            moment_diag += -1/6*value/self.length*self.x**3+1/6*value*self.length*self.x  #izracun na isti nacin kao i qlinr, samo koristenje numpy.flip da zamijeni vrijednosti oko y osi
+            moment_diag = np.flip(moment_diag)
+            self.intrinsic_diagram += moment_diag
 
 
         elif load_type=="M":
 
-            placement=float(line_list[4])
-            peak_loc=1+m.floor(placement*self.length/kd_local)
-            x1=self.x[0:peak_loc]
-            x2=self.x[peak_loc:]
-            moment_diag1=np.zeros(len(x1))
-            moment_diag2=np.zeros(len(x2))
-            moment_diag1+=-value*x1/self.length
-            moment_diag2+=value*(self.length-x2)/self.length
-            self.intrinsic_diagram+=np.concatenate((moment_diag1,moment_diag2), axis=None)
+            placement = float(line_list[4])
+            peak_loc = 1+m.floor(placement*self.length/kd_local)
+            x1 = self.x[0:peak_loc]
+            x2 = self.x[peak_loc:]
+            moment_diag1 = np.zeros(len(x1))
+            moment_diag2 = np.zeros(len(x2))
+            moment_diag1 += -value*x1/self.length
+            moment_diag2 += value*(self.length-x2)/self.length
+            self.intrinsic_diagram += np.concatenate((moment_diag1,moment_diag2), axis = None)
 
-        #elif load_type=="anal":
+        elif load_type=="anal": #NOT IMPLEMENTED
+            pass
+
+        self.max_moment_independently = np.abs(self.intrinsic_diagram).max()
 
     def moment_diagram_clear(self): #U slucaju neke potrebe mozda ovako nesto napravit. VRLO VJEROJATNO NECE BITI POTREBNO
 
-        self.intrinsic_diagram=np.zeros(num_o_fields+1)
+        self.intrinsic_diagram = np.zeros(num_o_fields+1)
 
     def max_stress(self):
 
-        trapezius=np.linspace(self.M12,self.M21,len(self.x))    #racunanje trapeza zbog nejednakih momentata upetosti u cvorovima
-        self.intrinsic_diagram_w_trap=self.intrinsic_diagram+np.ravel(trapezius)             #np.ravel funkcija potrebna da se mogu zbrojiti dva niza - jer su inace drugacijih oblika (R,1) i (R,)
-        max_moment=np.max(self.intrinsic_diagram_w_trap)                #pronalazak maksimalnog momenta na gredi, starija verzija - max(self.intrinsic_diagram_w_trap)
-        self.max_s=abs(max_moment/self.prop.sect.Wy)                 #izracun maksimalnog naprezanja na gredi
+##        trapezius = np.linspace(self.M12,self.M21,len(self.x))    #racunanje trapeza zbog nejednakih momentata upetosti u cvorovima
+##        self.intrinsic_diagram_w_trap = self.intrinsic_diagram+np.ravel(trapezius)             #np.ravel funkcija potrebna da se mogu zbrojiti dva niza - jer su inace drugacijih oblika (R,1) i (R,)
+
+        moment_node1 = abs(self.intrinsic_diagram[0] + self.M12)
+        moment_node2 = abs(self.intrinsic_diagram[-1] + self.M21)
+
+        possible_maxs = [ moment_node1, moment_node2, self.max_moment_independently]
+        
+##        max_moment = np.max(self.intrinsic_diagram_w_trap)                #pronalazak maksimalnog momenta na gredi, starija verzija - max(self.intrinsic_diagram_w_trap)
+
+        max_moment = float(max(possible_maxs))
+        self.max_s = abs(max_moment/self.prop.sect.Wy)                 #izracun maksimalnog naprezanja na gredi
 
 
 class Structure():
@@ -475,42 +493,57 @@ class Structure():
 
     def __init__(self, kd):
 
-        self.nodes:List[Node]=[]
-        self.materials:List[Material]=[]
-        self.sections:List[Section]=[]
-        self.properties:List[Property]=[]
-        self.beams:List[Beam]=[]
+        self.nodes:List[Node] = []
+        self.materials:List[Material] = []
+        self.sections:List[Section] = []
+        self.properties:List[Property] = []
+        self.beams:List[Beam] = []
 
-        self.kd=kd
+        self.kd = kd
+        y_cgs_calculated = False              #CONTROL PARAMETER FOR CALCULATION OF VERTICAL POSITION OF CENTER OF GRAVITY
+        self.first_evaluation_of_global_equation = True
+        self.m=[]                               #Vector of moments due to load (individual beam)
 
     @property
     def beam_stresses_array(self) -> List[float]:
         
-        stresses=[]
+        stresses = []
         for beam in self.beams:
             stresses.append(beam.max_s)
 
         return stresses
 
+    def calculate_m_vector(self):
+
+        self.m = np.zeros((len(self.nodes),1))
+        
+        for beam in self.beams:
+            self.m[beam.node1.ID-1] += (-beam.m12)      #VEKTOR MOMENATA (zapravo se ne treba kreirati iznova svaki puta, tu se moze ustedjeti na racunalnom vremenu - isto kad bude moguce vise load caseova! Za svaki load case ovo izracunati)
+            self.m[beam.node2.ID-1] += (-beam.m21)        
+
     def global_equation(self)-> np.ndarray: #vraca matricu nxn, gdje je n broj mogucih kuteva zakreta
 
         '''"Method that sets global system of linear algebraic equations for calculation of angular displacements based on compatibility conditions and equilibrium equations of every nodes.'''
 
-        phi=np.zeros((len(self.nodes),1))  #inicijalizacija prazne matrice
+        phi = np.zeros((len(self.nodes),1))  #inicijalizacija prazne matrice
 
-        K=np.zeros((len(self.nodes),len(self.nodes)))
-        m=np.zeros((len(self.nodes),1))
-                                            
+        K = np.zeros((len(self.nodes),len(self.nodes)))
+        
+        if self.first_evaluation_of_global_equation == True:
+            self.calculate_m_vector()
+            self.first_evaluation_of_global_equation = False
+    
         for beam in self.beams:
             
                     beam.prop.sect.calculate()
                     beam.calculate_k_ij()
-                    ixgrid=np.ix_([beam.node1.ID-1, beam.node2.ID-1], [beam.node1.ID-1, beam.node2.ID-1])   #Koristenje np.ix_ da se na prava mjesta u globalnoj matrici doda lokalna krutost."
-                    K[ixgrid]+=np.array([[2*beam.k_ij, -beam.k_ij], [-beam.k_ij, 2*beam.k_ij]])             #numpy zbrajanje preko submatrica  polje indeksa... np.ix_ numpy je brzi - da wrapped FORTRAN C++"
+                    ixgrid = np.ix_([beam.node1.ID-1, beam.node2.ID-1], [beam.node1.ID-1, beam.node2.ID-1])   #Koristenje np.ix_ da se na prava mjesta u globalnoj matrici doda lokalna krutost."
+                    K[ixgrid] += np.array([[2*beam.k_ij, beam.k_ij], [beam.k_ij, 2*beam.k_ij]])             #numpy zbrajanje preko submatrica  polje indeksa... np.ix_ numpy je brzi - da wrapped FORTRAN C++"
 
-                    m[beam.node1.ID-1]+=(-beam.m12)      #VEKTOR MOMENATA
-                    m[beam.node2.ID-1]+=(-beam.m21)
+##                    self.m[beam.node1.ID-1] += (-beam.m12)     #Vektor "malih" m_ij momenata! Zamijenjeno sa funkcijom calculate_m_vector
+##                    self.m[beam.node2.ID-1] += (-beam.m21)
 
+        
 
         K_inv = np.linalg.inv(K)
 
@@ -519,12 +552,13 @@ class Structure():
 ##        uvjetovanost = np.linalg.norm(K,'fro')*np.linalg.norm(K_inv,'fro')       
 ##
 ##        print("Uvjetovanost matrice K iznosi: \n", uvjetovanost)
-##        print("Matrica K: \n", K)
+##        print("Matrica K: \n", K[0:5,0:5]*1e-9)
 ##        print("Inverz matrice K: \n", K_inv)
 ##        print("Vektor momenata", m)
+##        print('')
 
 
-        phi = np.matmul(K_inv,m)       #MATRICNO MNOZENJE
+        phi = np.matmul(K_inv, self.m)       #MATRICNO MNOZENJE
 
         return phi
 
@@ -534,12 +568,13 @@ class Structure():
 
         '''Method that based that calls function that calculates angular displacements, assigns those displacements to appropriate nodes and then calculates moments at the end of beams.'''
 
-        phi=self.global_equation()
+        phi = self.global_equation()
+##        print(phi*1e9)
 
         #Pripisujemo cvorovima njihove kuteve zakreta
 
         for i in range(0,len(self.nodes)):
-            self.nodes[i].phi=phi[i]        #POJASNJENJE: U cvoru, grede se zakrecu zajedno za isti kut. Primjetimo, ova metoda uzima u obzir krutosti. Tako da ce taj zakret biti
+            self.nodes[i].phi = phi[i]        #POJASNJENJE: U cvoru, grede se zakrecu zajedno z00a isti kut. Primjetimo, ova metoda uzima u obzir krutosti. Tako da ce taj zakret biti
                                             #najblizi zakretu najkruce grede u stvarnosti. VAZNO - prema redoslijedu cvorova su i kreirane jednadzbe, pa tako ce i rjesenja biti ispravno poredana
 
 
@@ -550,18 +585,6 @@ class Structure():
             beam.M12 = beam.k_ij*(2*beam.node1.phi-beam.node2.phi)+beam.m12
             beam.M21 = beam.k_ij*(2*beam.node2.phi-beam.node1.phi)+beam.m21
             beam.max_stress()
-
-        #Maksimalno naprezanje grede okvira - #isto tako#
-
-            #if self.beams[j].smax>self.beams[j].mat.sallow:
-                #pozivati optimizacijski algoritam...
-                #self.beams[j].     Tu slijedi neka promjena parametara pojedine grede tj. pojedinog sectiona. Jer, dimenzioniramo section.
-
-        #Pozivanje optimizacijskog algoritma
-
-            #VAZNO - iz structure moze se beamu dodijelit stress... ako on veci od dopustenog, mijenjaju se parametri beam-a. Ponovno iz structure-a metoda koja
-            #Buduci da se optimizacijom mijenjaju neki propertyji, a neki ostaju, potrebno je svakoj gredi, dodijelit posebnu instancu propertya - dakle ne kao dosad! - tj. treba kreirat i novi section!
-            #Za optimizacije materijala, treba jednostavno provjerit slucajeve i s drugim materijalima - mozda ugradit iskustvo unutra - npr. na visoko opterecnim ispod neke debljine ugradit posebni materijal - masa, cijena
 
     def change_opt_param(self):
 
@@ -574,13 +597,40 @@ class Structure():
 
         '''Method that can be used by other programs in order to fetch (get) mass of a structure in order to form objective function'''
 
-        mass=0
+        mass = 0
         
         for beam in self.beams:
             
-            mass+=beam.length*beam.prop.sect.A*beam.prop.mat.dens
+            mass += beam.length*beam.prop.sect.A*beam.prop.mat.dens
 
         return mass
+
+    def calculate_y_cgs(self):
+
+        '''Method that calculates y_cg of beams - that is - vertical position of each beams center of gravity. That doesn't changes, so it only needs to be calculated once!'''
+
+        for beam in self.beams:
+            beam.y_cg = ( beam.node1.coords[1] + beam.node2.coords[1] ) / 2
+
+    def get_vertical_CG_position(self) -> float:
+
+        '''Method that can be invoked to calculate vertical position of the center of gravity point'''
+
+        CG_position = 0
+
+        if y_cgs_calculated == False:
+            self.calculate_y_cgs()
+            y_cgs_calculated = True
+            
+        for beam in self.beams:
+
+            #CALCULATING numerator of formula CG = sum(beam.y_cg*beam.length*beam.prop.sect.A*beam.prop.mat.dens for beam in beams) / Structure.get_mass()
+            CG_position += beam.y_cg * beam.length * beam.prop.sect.A * beam.prop.mat.dens
+
+        CG_position = y_cg_beam/self.get_mass() #KAKO NAPRAVITI DA PRORACUN MASE NEJDE PONOVNO? NEGO AKO JE VEC IZRACUNATA U OVOM KRUGU, DA JEDNOSTAVNO JU ISKORISTI? I KAK ZNATI DA JE TO AKTUALNA MASA, DA JE UPDATEA-ANA?
+            
+
+        return CG_position
 
     def get_section_parameters(self, section_ID) -> List:
 
@@ -593,13 +643,13 @@ class Input_file():
     '''Class that stores data about input file used to generate analysis as well as functionality that goes with it.'''
 
     def __init__(self,path, kd):
-        self.path=path
-        self.kd=kd
+        self.path = path
+        self.kd = kd
 
     def load_file(self):
 
         try:
-            self.inp_file=open(self.path,"rt")
+            self.inp_file = open(self.path,"rt")
         except:
             print("Greska. Ili datoteka ne postoji, ili je unesena putanja kriva.")
             print("Provjeriti ispravnost putanje i postojanje datoteke!")
@@ -608,20 +658,20 @@ class Input_file():
 
         # DEFINICIJA NUKMERATORA ID-a ZA STVARANJE DEFAULTNIH IMENA AKO NE POSTOJE
 
-        numer_node=1
-        numer_mat=1
-        numer_sect=1
-        numer_prop=1
-        name_prop=1
-        numer_beam=1
-        name_beam=1
+        numer_node = 1
+        numer_mat = 1
+        numer_sect = 1
+        numer_prop = 1
+        name_prop = 1
+        numer_beam = 1
+        name_beam = 1
 
-        structure_obj=Structure(self.kd)
+        structure_obj = Structure(self.kd)
 
         #DEFINIRANJE NEKIH GLOBALNIH BROJACA I LISTA
 
-        tpi=0                       #text position index
-        lines= []                   #buduce linije tekstualne datoteke
+        tpi = 0                       #text position index
+        lines = []                   #buduce linije tekstualne datoteke
 
         #PROLAZENJE KROZ TEKSTUALNU DATOTEKU I ZATVARANJE DATOTEKE
 
@@ -631,24 +681,24 @@ class Input_file():
 
         #CITANJE BROJA OBJEKATA I KREIRANJE ISTIH POZIVANJEM FUNKCIJA
 
-        quantities_read=False
-        curr=0
-        num_o_objects=[]
-        sections_to_opt=[]
-        num_o_param=[]
+        quantities_read = False
+        curr = 0
+        num_o_objects = []
+        sections_to_opt = []
+        num_o_param = []
 
         while tpi<len(lines):
 
             if lines[tpi][0]!="#" and not quantities_read:  #u num_o_objects se pamti broj objekata - cvorova, presjeka, greda...
-                quantities_read=True
-                line_string=lines[tpi]                      #Prvih linija komentara moze biti vise, pa kad naide na liniju bez prvog znaka # - cita koliko ima kojih objekata
-                line_string=line_string.strip()
-                line_list=line_string.split(",")
-                i=0
+                quantities_read = True
+                line_string = lines[tpi]                      #Prvih linija komentara moze biti vise, pa kad naide na liniju bez prvog znaka # - cita koliko ima kojih objekata
+                line_string = line_string.strip()
+                line_list = line_string.split(",")
+                i = 0
                 for num in line_list:
-                    line_list[i]=int(num)
-                    i+=1
-                num_o_objects=line_list
+                    line_list[i] = int(num)
+                    i += 1
+                num_o_objects = line_list
 
                 #print(num_o_objects)                        #RADI KONTROLE
 
@@ -658,59 +708,59 @@ class Input_file():
 
                     for i in range(0,num_o_objects[curr]):
 
-                        line_string=lines[tpi]
-                        line_list=self.word_splitting(line_string)
+                        line_string = lines[tpi]
+                        line_list = self.word_splitting(line_string)
                         numer_node, structure_obj = self.node_creation(line_list, numer_node, structure_obj)
-                        tpi+=1
+                        tpi += 1
 
                 elif curr==1:                                 #MATERIAL
 
                     for i in range(0,num_o_objects[curr]):
 
-                        line_string=lines[tpi]
-                        line_list=self.word_splitting(line_string)
+                        line_string = lines[tpi]
+                        line_list = self.word_splitting(line_string)
                         numer_mat, structure_obj = self.material_creation(line_list, numer_mat, structure_obj)
-                        tpi+=1
+                        tpi += 1
 
                 elif curr==2:                                 #SECTION
 
                     for i in range(0,num_o_objects[curr]):
 
-                        line_string=lines[tpi]
-                        line_list=self.word_splitting(line_string)
+                        line_string = lines[tpi]
+                        line_list = self.word_splitting(line_string)
                         numer_sect, structure_obj = self.section_creation(line_list, numer_sect, structure_obj)
-                        tpi+=1
+                        tpi += 1
 
                 elif curr==3:                                 #PROPERTY
 
                     for i in range(0,num_o_objects[curr]):
 
-                        line_string=lines[tpi]
-                        line_list=self.word_splitting(line_string)
+                        line_string = lines[tpi]
+                        line_list = self.word_splitting(line_string)
                         numer_prop, structure_obj = self.property_creation(line_list, numer_prop, structure_obj)
-                        tpi+=1
+                        tpi += 1
 
                 elif curr==4:                                 #BEAM
 
                     for i in range(0,num_o_objects[curr]):
 
-                        line_string=lines[tpi]
-                        line_list=self.word_splitting(line_string)
+                        line_string = lines[tpi]
+                        line_list = self.word_splitting(line_string)
                         name_beam, numer_beam, structure_obj = self.beam_creation(line_list, name_beam, numer_beam, structure_obj)
-                        tpi+=1
+                        tpi += 1
 
                 elif curr==5:                                 #LOAD
 
                     for i in range(0,num_o_objects[curr]):
 
-                        line_string=lines[tpi]
-                        line_list=self.word_splitting(line_string)
+                        line_string = lines[tpi]
+                        line_list = self.word_splitting(line_string)
                         structure_obj = self.load_creation(line_list, structure_obj)
-                        tpi+=1
+                        tpi += 1
 
-                curr+=1
+                curr += 1
 
-            tpi+=1
+            tpi  +=  1
 
         return structure_obj
 
@@ -719,16 +769,16 @@ class Input_file():
 
         '''Function used for stripping and splitting words from textual file. Mainly used in creation of instances of a class.'''
 
-        line_string=line_string.strip()     #cisti pocetak od razmaka
+        line_string = line_string.strip()     #cisti pocetak od razmaka
 
-        line_list=line_string.split(",")    #razdvaja na pojedine rijeci
+        line_list = line_string.split(",")    #razdvaja na pojedine rijeci
 
-        i=0
+        i = 0
         for word in line_list:
-            word=word.strip()
-            word=word.strip('"')
-            line_list[i]=word
-            i+=1
+            word = word.strip()
+            word = word.strip('"')
+            line_list[i] = word
+            i += 1
 
         return line_list
 
@@ -738,10 +788,10 @@ class Input_file():
 
         '''Function that creates NODE OBJECTS from input file.'''
 
-        node_name="Node"+str(numer_node)                                    #Automatsko dodavanje imena cvoru
+        node_name = "Node"+str(numer_node)                                    #Automatsko dodavanje imena cvoru
         structure_obj.nodes.insert(numer_node, Node(node_name,line_list))    #KREIRANJE CVORA - staviti metodu append
 
-        numer_node+=1                   #Povecavanje brojaca za 1
+        numer_node += 1                   #Povecavanje brojaca za 1
         
         return numer_node, structure_obj
 
@@ -751,7 +801,7 @@ class Input_file():
         '''Function that creates MATERIAL OBJECTS from input file.'''
         structure_obj.materials.insert(numer_mat,Material(line_list)) #pogledati datoteku sto je koji element niza line_list
         
-        numer_mat+=1
+        numer_mat += 1
 
         return numer_mat, structure_obj
 
@@ -761,11 +811,11 @@ class Input_file():
         '''Function that creates BEAM OBJECTS from input file.'''
 
 
-        beam_name="Beam"+str(name_beam)                                         # Vidjeti je li potrebno??? Moze bit, ali jedino ako se uz to omoguci unos kao dodatna mogucnost.
+        beam_name = "Beam"+str(name_beam)                                         # Vidjeti je li potrebno??? Moze bit, ali jedino ako se uz to omoguci unos kao dodatna mogucnost.
         structure_obj.beams.insert(numer_beam,Beam(beam_name,numer_beam,line_list, structure_obj))
 
-        name_beam+=1
-        numer_beam+=1
+        name_beam += 1
+        numer_beam += 1
 
         return name_beam, numer_beam, structure_obj
 
@@ -774,7 +824,7 @@ class Input_file():
 
         '''Function that is actually a switch-case. Dependent on the read type of the section, it instatiates the right one'''
 
-        chooser=line_list[1]
+        chooser = line_list[1]
 
         if chooser=="I_Beam":
             structure_obj.sections.insert(numer_sect,I_Beam(line_list))
@@ -798,7 +848,7 @@ class Input_file():
         '''Function that creates SECTION OBJECTS from input file.'''
 
         structure_obj = self.section_type(line_list, numer_sect, structure_obj)
-        numer_sect+=1
+        numer_sect += 1
 
         return numer_sect, structure_obj
 
@@ -809,7 +859,7 @@ class Input_file():
             That way, it is predicted that cost optimization is possible to achieve.'''
 
         structure_obj.properties.insert(numer_prop, Property(line_list, structure_obj.materials, structure_obj.sections))
-        numer_prop+=1
+        numer_prop += 1
 
         return numer_prop, structure_obj
 
@@ -818,7 +868,7 @@ class Input_file():
 
         '''Function that calls proper beam object and creates loads that act on it'''
 
-        section_ID=int(line_list[2])
+        section_ID = int(line_list[2])
         structure_obj.beams[section_ID-1].create_load(line_list)
 
         return structure_obj
@@ -827,7 +877,7 @@ class Input_file():
     def switch_type(self, line_list):
 
         '''Function that calles appropriate function for creation of objects from input file.'''
-        chooser=line_list[0]
+        chooser = line_list[0]
         if chooser=="Node":
             node_creation(line_list)
         elif chooser=="Material":
@@ -845,12 +895,12 @@ class Constraint_stress():
 
     def __init__(self,beam:Beam):
 
-        self.beam=beam
+        self.beam = beam
 
     def constraint(self,x) -> float: #x je tu samo radi zahtjeva scipy funkcija
 
-        sigmadop=self.beam.prop.mat.sigmadop
-        max_stress=self.beam.max_s
+        sigmadop = self.beam.prop.mat.sigmadop
+        max_stress = self.beam.max_s
 
         return sigmadop-max_stress
 
@@ -867,7 +917,7 @@ def get_stress_cons_lt_0() -> List[float]:
     '''Method for pymoo and perhaps some other optimization modules that take list of values from evaluated constraints. For structural frame analysis it is common to compare beam stresses to allowable values for material.
         Results are returned in a list (pymoo) to be saved in "out" dictionary like this: out['G']=ao.get_stress_cons_lt_0() where ao is from: import Analiza_okvira as ao. '''
 
-    beam_stress_cons=[]
+    beam_stress_cons = []
 
     for beam in structure_obj.beams:
         con_value = beam.max_s - beam.mat.sigmadop
@@ -877,7 +927,7 @@ def get_stress_cons_lt_0() -> List[float]:
 
 def get_stress_cons_gt_0() -> List[float]:
 
-    beam_stress_cons=[]
+    beam_stress_cons = []
 
     for beam in structure_obj.beams:
         con_value = beam.max_s - beam.mat.sigmadop

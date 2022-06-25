@@ -1,18 +1,24 @@
 import Analiza_okvira_v0_33 as ao
 import numpy as np
 from abc import ABC,abstractmethod
-from pymoo.factory  import get_mutation
+
+#DIO IZ JMETAL biblioteke
+from jmetal.operator.mutation import PolynomialMutation
+from jmetal.operator.crossover import SBXCrossover
+from jmetal.operator.selection import BinaryTournamentSelection
+from jmetal.util.termination_criterion import StoppingByTime, StoppingByEvaluations, StoppingByQualityIndicator,StoppingByKeyboard
+from jmetal.core.quality_indicator import FitnessValue, GenerationalDistance, InvertedGenerationalDistance, EpsilonIndicator, HyperVolume
 
 if __name__ == '__main__':
     try:
         from optbase import *
-        from optlib_pymoo_proto import PymooOptimizationAlgorithm
+        from optlib_jmetalpy_proto import jmetalOptimizationAlgorithm
     except ImportError:
         pass
 else:
     try:
         from femdir.optbase import *
-        from femdir.optlib_pymoo_proto import PymooOptimizationAlgorithm
+        from femdir.optlib_jmetalpy_proto import jmetalOptimizationAlgorithm
     except ImportError:
         pass
 
@@ -27,9 +33,7 @@ if __name__ == '__main__':
 
             ao.calculate_problem(model)  #PRORACUN u Analizi_okvira
             #print(model.get_mass())
-            
-##            ao.get_stress_cons_lt_0()   #isto tako vrijedi i za Ratio tip constrainta. No, onda bi bilo smisleno i ostale na isti nacin implementirati! Npr. u obliku Ratia mogu biti i naprezanja! Obratiti pozornost na normiranje, istu skalu
-                    
+                            
             return AnalysisResultType.OK
 
 
@@ -60,8 +64,6 @@ if __name__ == '__main__':
     
     lbs=[500, 5, None,None, 50, 5]
     ubs=[1500, 25, None, None, 500, 30] #None are just here to take place so that index works well
-
-    print(len(op._desvars))
     
     for section in model.sections:
         
@@ -80,38 +82,18 @@ if __name__ == '__main__':
 
                     index+=1
 
-#DO OVDJE RADI!
-                        
-##    for section in model.sections:
-##        
-##        if section.ID in sections_to_opt:
-##            
-##            for parameter in section.parameters:
-##                
-##                index=section.parameters.index(parameter)
-##                
-##                if index!=3 and index!=4:
-##                    op.add_design_variable(DesignVariable(name+str(i),NdArrayGetSetConnector(section.parameters,index),lb[index], ub[index] )) #section.bounds[index][0],section.bounds[index][1]
-##                    i+=1
-
-    #print(model.sections[0].parameters)                          
-    #op._desvars[0].value=900
-    #print(model.sections[0].parameters)   #optbase moze pristupiti i promijeniti parametre! 
+##    KONTROLA POVEZANOSTI DESVARS I MODELA
+##    print(model.sections[0].parameters)                          
+##    op._desvars[0].value=900
+##    print(model.sections[0].parameters)   #optbase moze pristupiti i promijeniti parametre! 
                     
     #FUNKCIJE CILJA
 
     
-    op.add_objective(DesignObjective('mass',CallbackGetConnector(model.get_mass)))
-
-    #op.add_objective(DesignObjective('vertical position of CG',CallbackGetConnector(model.get_vertical_CG_position)))
-                                       
-    #U Analiza_okvira implementirana metoda Structure.get_mass()
-    #Na slican nacin ugraditi jos koju metodu u model da korisniku bude lakse definirati neke ucestale funkcije cilja. N
-    #Korisnik moze definirati i neku svoju funkciju cilja pristupajuci pojedinim podacima za pojedine Beam, Section i Property objekte - potrebno je poznavati program Analiza okvira!
+    op.add_objective(DesignObjective('mass',CallbackGetConnector(model.get_mass)))                               
 
     #OGRANICENJA
-    
-
+    #++++++++++++++++++++++++++#
     
     #NAPREZANJE
     i=0
@@ -124,7 +106,6 @@ if __name__ == '__main__':
     dictionary={}   #dictionary of all desvars with their names
     
     for ix in range(op.num_var):
-        print(ix)
         desvar=op.get_desvar(ix)
         name=str(desvar.name)
         dictionary[name]=desvar
@@ -164,30 +145,44 @@ if __name__ == '__main__':
                     i+=1
 
 
+    #DIO SPECIFICAN za JMETALPY
+    #++++++++++++++++++++++++++#
 
-                    #osmisliti dohvacanje ovih _desvars privatnih varijabli. -Na ovaj nacin se lako mogu kreirati ogranicenja - na ova dva nacina
-                    #jos je potrebno ogranicenje naprezanja! - treba neki konektor da mozda poveze dvije stvari - naprezanje u gredi, a s desne strane je dozvoljeno naprezanje materijala. osmisliti kako to napraviti, a da korisniku
-                    #ostane sto apstraktnije.. mozda nekako posebno pripremiti izlaz za ovaj program.. nekako pripremiti pokazivac na objekte greda i na objekte materijala... 
+    #DEFINIRANJE OPERATORA MUTACIJA, KRIZANJA I SELEKCIJE
+    #Napomena: potreban uvoz objekata i klasa!!!
 
+    #for GA algoritam 
+##    mutation = PolynomialMutation(probability=0.2)
+##    crossover = SBXCrossover(probability=0.5)
+##    selection = BinaryTournamentSelection()
+##    termination_criterion = StoppingByTime(6) #iako defaultno postoji, treba definirati termination 
+##
+##    operators = {'mutation':mutation, 'crossover':crossover,'selection':selection}
+##    alg_ctrl={'population_size':10,'offspring_population_size':10}       #u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    #term_ctrl={'n_gen':20}
 
-    # dio postavki specifican za pymoo
-    
-    mutation_obj=get_mutation('real_pm', eta=5, prob=0.2)
-    alg_ctrl={'pop_size':80,'mutation':mutation_obj}       #u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
-    term_ctrl={'n_gen':30}                                                       #Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje 
-    op.opt_algorithm = PymooOptimizationAlgorithm('ga', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)        #prvi argument string naziva algoritma, ostatak u obliku dictionary-ja ili tuple-a. mozda? Staviti da su defaultno None da se mogu ne poslati?
-    #treba kreirati i termination criteria - pogledati je li potrebna nova klasa u optbase-u.
+    #for ES algoritam 
+    mutation = PolynomialMutation(probability=0.2)
+    termination_criterion = StoppingByTime(60) #iako defaultno postoji, treba definirati termination 
+
+    operators = {'mutation':mutation}
+    alg_ctrl={'mu':100,'lambda_':100,'elitist':True}       #mu je population size, lambda_ je offspring population size - ocito ovo treba preko pymoo izraza standardizirati za korisnika
+    #term_ctrl={'n_gen':20}                   
+
+    #op.opt_algorithm = jmetalOptimizationAlgorithm('ga', operators=operators, alg_ctrl=alg_ctrl, termination_criterion=termination_criterion)      #izgleda da GA nema constraint handling, zato sve minimizira do donjih granica iako krsi constraintse!
+    op.opt_algorithm = jmetalOptimizationAlgorithm('es', operators=operators, alg_ctrl=alg_ctrl, termination_criterion=termination_criterion)
+
+    #treba kreirati i termination criteria - pogledati je li potrebna nova klasa u optbase-u. Vjerojatno u optlibu!
 
     #op.termination(n_gen=40)PymooTermination # Od termination criteria imamo sljedci izbor
                                    
-    res = op.optimize([])
+    res = op.optimize([])    
     print(res)                  
     print(op.get_info())
 
-    np.set_printoptions(suppress=True,precision=2)
-    for beam in model.beams:
-        print(beam.max_s)
+##    np.set_printoptions(suppress=True,precision=2)
+##    for beam in model.beams:
+##        print(beam.max_s)
     
-    pass
 
 

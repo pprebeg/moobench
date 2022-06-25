@@ -148,12 +148,12 @@ class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
         # Objective
         sp_obj:ScipyObjective = ScipyObjective(sp_ma,objectives[0])    #s obzirom da je jednociljno, samo je objectives[0].. da je viseciljnoo - bilo bi isto ko i za ogranicenja odmah iznad.. bila bi for petlja, koja bi presla
                                                                        #cijelu listu ogranicenja kao iterable.. for obj in objs npr.. 
-        consdata = self._get_constraint_data()
+        consdata = self._get_constraint_data(sp_cons)
         if self._method == 'COBYLA':
             bnds=None                       #COBYLA ide sve preko constraints-a
             dvcdata = self._get_bounds_as_constraint_data(sp_desvars) #funkcija specijalno za prevodjenje boundsa u constraints... 
             consdata.extend(dvcdata)
--        else:
+        else:
             bnds = self._get_bounds(sp_desvars) #saljes ScipyVariable, ova funkcija vraca bounds tako da ih ekstrahira iz ScipyVarijabli, tj. iz niza redom.. 
         objfun = sp_obj.criteria_fun_scipy      #Kao sto je za ogranicenja trebao consdata=_get_constraint_data(sp_cons), ovdje je jedan cilj optimizacije, i zato se ovako eksplicitno dodjeljuje - da vrati objfun - dakle callable - metodu ScipyObjective objekta/klase...
         sp_ma.init_analysis(len(desvars))       #ova linija ne daje x0 vec inicijalizira neki zadnji x - kao da je to zadnje rjesenje, iako x0 salje kao pocetni. 
@@ -192,7 +192,7 @@ class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
                  constraints: List[DesignConstraint],
                  objectives: List[DesignObjective],
                  x0:np.ndarray,
-                 calback_evaluate, calback_get_curren_solution) -> List[OptimizationProblemSolution]: #za to sto su callback_evaluate i callback_get_current_solution vidi optbase.py OptimizationProblem.optimize - to su dakle metode evaluate i get_current_sol u toj klasi
+                 calback_evaluate, calback_get_current_solution) -> List[OptimizationProblemSolution]: #za to sto su callback_evaluate i callback_get_current_solution vidi optbase.py OptimizationProblem.optimize - to su dakle metode evaluate i get_current_sol u toj klasi
         
         (objfun,consdata,bnds) = self._generate_scipy_problem(desvars, constraints, objectives, calback_evaluate)  #tu se poziva generate_scipy_problem metoda kao arugment callback funkcije, to se poziva odmah! - ta funkcija naravno vraca (objfun, consdata, bnds) upravo tim redom 
                                                                                                                     #calback_evaluate i calback_get_current_solution su callback funkcije, i ne izvršavaju se odmah, vec se pozivaju kasnije(objfun,consdata,bnds) ce biti
@@ -202,7 +202,12 @@ class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
         elif self._method == 'COBYLA':
             sol = minimize(objfun, x0, constraints=consdata, method=self._method,options=self._options)
         self._sol=sol                               #rjesenje se sprema u privatnu _sol varijablu, postoji property posto je privatna ._sol
-        opt_sol = calback_get_curren_solution()     #dihvaca posebno sadasnje rjesenje... ovaj callback zapravo
+
+        x = sol.x
+        
+        calback_evaluate(x)
+        
+        opt_sol = calback_get_current_solution()     #dihvaca posebno sadasnje rjesenje... ovaj callback zapravo
         solutions:List[OptimizationProblemSolution] = [] #valjda onaj history rjesenja? 
         solutions.append(opt_sol)
         return solutions                                    #lista rjesenja? 

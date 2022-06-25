@@ -59,9 +59,6 @@ class WrappedPymooProblem(ElementwiseProblem):
         
         out['G']=np.array(glist)
 
-        #print(x)
-
-
 
 class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
@@ -190,18 +187,38 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
                  x0:np.ndarray,
                  callback_evaluate,callback_get_current_solution) -> List[OptimizationProblemSolution]:
 
-        problem = self._generate_pymoo_problem(desvars, constraints, objectives, callback_evaluate, callback_get_current_solution)  #Definiranje pymoo problem
+        #GENERATING PYMOO PROBLEM
 
+        problem = self._generate_pymoo_problem(desvars, constraints, objectives, callback_evaluate, callback_get_current_solution)
+
+        #GENERATING TERMINATION CRITERION BASED ON USER INPUT OR DEFAULT VALUES 
+        
         if self.termination!=None:
             termination = self._generate_termination_criterion(self.termination)
         else:
             termination = self._default_termination_criterion()
 
+        #CONDUCTING PYMOO OPTIMIZATION
+            
         sol = minimize(problem, self._algorithm, termination, seed=1, **self._alg_options) #ovo bi trebalo raditi baš kako treba! - termination=None, seed=None, verbose=False, display=None, callback=None, return_least_infeasible=False, save_history=False
 
-        self._sol=sol #Sprema se pymoo.Result - klasa pymoo-a koja cuva rjesenje!
+        self._sol = sol #Sprema se pymoo.Result - klasa pymoo-a koja cuva optimalno i izvedivo (ako je dobiveno) rjesenje!
 
-        opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca objekt OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u cistom numerickom obliku.
+        #FINAL EVALUATION OF OPTIMAL SOLUTION TO BE STORED AS OptimizationProblemSolution
+
+        x = sol.X
+
+        out={}
+
+        out['F'] = sol.F
+
+        out['G'] = sol.G
+
+        problem._evaluate(x,out)
+
+        #STORING
+
+        opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku.
 
         solutions:List[OptimizationProblemSolution] = []
 

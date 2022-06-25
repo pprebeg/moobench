@@ -42,7 +42,7 @@
 	15, 2, 8, 1
 	16, 1, 7, 1
 # Load, ID, "F/q/qlinl/qlinr/M/anal", beam id, value, "aditional specific parameters"
-	1, q, 4, 292.5 res
+	1, q, 4, 292.5
 	2, q, 7, 292.5
 	3, q, 10, 292.5
 	4, q, 15, 45.0

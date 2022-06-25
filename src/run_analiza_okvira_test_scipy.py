@@ -1,43 +1,41 @@
 import Analiza_okvira_v0_33 as ao
 import numpy as np
 from abc import ABC,abstractmethod
-from pymoo.factory  import get_mutation
-
 if __name__ == '__main__':
     try:
         from optbase import *
-        from optlib_pymoo_proto import PymooOptimizationAlgorithm
+        from optlib_scipy import ScipyOptimizationAlgorithm
     except ImportError:
         pass
 else:
     try:
         from femdir.optbase import *
-        from femdir.optlib_pymoo_proto import PymooOptimizationAlgorithm
+        from femdir.optlib_scipy import ScipyOptimizationAlgorithm
     except ImportError:
         pass
 
-if __name__ == '__main__':
 
-    class Analiza_okvira_model(AnalysisExecutor): #potrebno napraviti neki drugaciji AnalysisExecutor mozda?
+if __name__ == '__main__': #__name__='__main__' samo ako smo pokrenuli ovaj file! Ako smo ga importirali, onda nije! 
+
+    class Analiza_okvira_model(AnalysisExecutor):
         
         def __init__(self):
-            super().__init__() #ovo tu treba iz Analiza okvira možda pomoću posebnih funkcija dohvatiti.. Npr. get_number_of_design_variables, get_number_o itd. ako bude potrebno uopće za taj Analysis Executor. 
+            super().__init__()
 
-        def analyize(self): #u ovaj analyize (treba pravopisno stvari promijeniti) definiramo izgleda funkcije cilja, inarray - ulazni niz, outarray, izlazni niz, funckije cilja i vrijednosti ogranicenja
+        def analyize(self):
 
-            ao.calculate_problem(model)  #PRORACUN u Analizi_okvira
+            #PRORACUN u Analizi_okvira
+            ao.calculate_problem(model)  
             #print(model.get_mass())
-            
-##            ao.get_stress_cons_lt_0()   #isto tako vrijedi i za Ratio tip constrainta. No, onda bi bilo smisleno i ostale na isti nacin implementirati! Npr. u obliku Ratia mogu biti i naprezanja! Obratiti pozornost na normiranje, istu skalu
-                    
+                               
             return AnalysisResultType.OK
 
 
 
     
-    InputFile=ao.Input_file('ponton.txt',0.2)
+    InputFile=ao.Input_file('ponton_cijela_optimizacija.txt',40)
     InputFile.load_file()
-    model = InputFile.create_model()            # u modelu je spremljen structure_obj preko kojeg imamo pristup svim funkcijama
+    model = InputFile.create_model()            # u modelu je spremljen structure_obj preko kojeg imamo pristup svim funkcijama i kreiranim objektima
     
     ao.calculate_problem(model)
     
@@ -50,18 +48,10 @@ if __name__ == '__main__':
     #Primjer dodavanja svih parametara u dizajnerske varijable - ovaj interfejs dodavanja treba olakšati! Primjerice sa funkcijom- GetSection(ID) pa se pošalje ID. ili GetSectionParameter(pa se posalje ID. Ili funkcija GetSections
     #pa get parameters. uglavnom - nekak ovaj interface prema korisniku znatno pojednostavit.. 
 
-##    sections_to_opt=[1]
-##    for section_ID in sections_to_opt:
-##        parameters:List = model.GetSectionParameters(section_ID)
-##        for parameter in parameters:
-##            op.add_design_variable(DesignVariable('x'+str(i),NdArrayGetSetConnector(parameters,index), section.bounds[index][0],section.bounds[index][1])
-
-    sections_to_opt=[1,2,3]                 #Lista presjeka za optimizaciju
+    sections_to_opt=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]                 #Lista presjeka za optimizaciju
     
     lbs=[500, 5, None,None, 50, 5]
     ubs=[1500, 25, None, None, 500, 30] #None are just here to take place so that index works well
-
-    print(len(op._desvars))
     
     for section in model.sections:
         
@@ -79,31 +69,11 @@ if __name__ == '__main__':
                         op.add_design_variable(DesignVariable(name+str(section.ID),NdArrayGetSetConnector(section.parameters,index), lb, ub)) #section.bounds[index][0],section.bounds[index][1]
 
                     index+=1
-
-#DO OVDJE RADI!
-                        
-##    for section in model.sections:
-##        
-##        if section.ID in sections_to_opt:
-##            
-##            for parameter in section.parameters:
-##                
-##                index=section.parameters.index(parameter)
-##                
-##                if index!=3 and index!=4:
-##                    op.add_design_variable(DesignVariable(name+str(i),NdArrayGetSetConnector(section.parameters,index),lb[index], ub[index] )) #section.bounds[index][0],section.bounds[index][1]
-##                    i+=1
-
-    #print(model.sections[0].parameters)                          
-    #op._desvars[0].value=900
-    #print(model.sections[0].parameters)   #optbase moze pristupiti i promijeniti parametre! 
                     
     #FUNKCIJE CILJA
 
     
     op.add_objective(DesignObjective('mass',CallbackGetConnector(model.get_mass)))
-
-    #op.add_objective(DesignObjective('vertical position of CG',CallbackGetConnector(model.get_vertical_CG_position)))
                                        
     #U Analiza_okvira implementirana metoda Structure.get_mass()
     #Na slican nacin ugraditi jos koju metodu u model da korisniku bude lakse definirati neke ucestale funkcije cilja. N
@@ -124,7 +94,7 @@ if __name__ == '__main__':
     dictionary={}   #dictionary of all desvars with their names
     
     for ix in range(op.num_var):
-        print(ix)
+        
         desvar=op.get_desvar(ix)
         name=str(desvar.name)
         dictionary[name]=desvar
@@ -163,31 +133,18 @@ if __name__ == '__main__':
                     op.add_constraint(DesignConstraint('g'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),3, ConstrType.LT))
                     i+=1
 
+    x0=[]
 
+    for i in range(op.num_var):
+        x0.append(op.get_desvar(i).value)
 
-                    #osmisliti dohvacanje ovih _desvars privatnih varijabli. -Na ovaj nacin se lako mogu kreirati ogranicenja - na ova dva nacina
-                    #jos je potrebno ogranicenje naprezanja! - treba neki konektor da mozda poveze dvije stvari - naprezanje u gredi, a s desne strane je dozvoljeno naprezanje materijala. osmisliti kako to napraviti, a da korisniku
-                    #ostane sto apstraktnije.. mozda nekako posebno pripremiti izlaz za ovaj program.. nekako pripremiti pokazivac na objekte greda i na objekte materijala... 
-
-
-    # dio postavki specifican za pymoo
-    
-    mutation_obj=get_mutation('real_pm', eta=5, prob=0.2)
-    alg_ctrl={'pop_size':80,'mutation':mutation_obj}       #u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
-    term_ctrl={'n_gen':30}                                                       #Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje 
-    op.opt_algorithm = PymooOptimizationAlgorithm('ga', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)        #prvi argument string naziva algoritma, ostatak u obliku dictionary-ja ili tuple-a. mozda? Staviti da su defaultno None da se mogu ne poslati?
-    #treba kreirati i termination criteria - pogledati je li potrebna nova klasa u optbase-u.
-
-    #op.termination(n_gen=40)PymooTermination # Od termination criteria imamo sljedci izbor
-                                   
-    res = op.optimize([])
-    print(res)                  
-    print(op.get_info())
-
-    np.set_printoptions(suppress=True,precision=2)
-    for beam in model.beams:
-        print(beam.max_s)
-    
+        
+    opt_ctrl = {'method':'COBYLA', 'maxiter':40000}  #ovo je dictionary koji se šalje konstruktoru ScipyOptimizationAlgorithm-a.. to znaci da su ostale postavke defaultne.. 
+    #opt_ctrl = {'method': 'SLSQP'}
+    op.opt_algorithm = ScipyOptimizationAlgorithm(opt_ctrl)         #postavljanje propertyja opt_algorithm (set metoda) i pritom spremanje objekta klase ScipyOptimizationAlgorithm
+    res = op.optimize(x0)    #pozivanje optimize! ovo [2,0] su pocetni x0.. op je tipa OptimizationProblem() iz optbase.py 
+    print(res)                  #printanje rezultata - solutions iz optlib_scipyja se prenosi u optbase što završava ovdje 
+    print(op.get_info())        #dobivanje informacija
     pass
 
-
+    print('testing usage of optimization problem')

@@ -246,7 +246,7 @@ class DesignConstraint(DesignCriteria):
         return
 
     @property
-    def status(self)->str:
+    def status(self)->str:          #HOCE LI OVO RADITI ZA PYMOO KOJEM JE self.value_lt_0
         absrhs = np.abs(self._rhs)
         if absrhs > 0.0:
             if self.value_gt_0/absrhs < -0.001:
@@ -256,7 +256,7 @@ class DesignConstraint(DesignCriteria):
             else:
                 return ''
         else:
-            if self.value_gt_0 < -0.01: #moguca greska! Treba biti < -0.001
+            if self.value_gt_0 < -0.001:
                 return '--'
             elif self.value_gt_0 < 0.001:
                 return '+-'
@@ -501,5 +501,5 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         for item in self._objectives:
             msg += item.get_info() + '\n'
         msg += '-------------------------------------------------------'
-        return msg
+        return print(msg)
 
