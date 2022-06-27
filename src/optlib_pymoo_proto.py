@@ -231,7 +231,7 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
 class PymooOptimizationAlgorithmSingle(PymooOptimizationAlgorithm):
 
     def __init__(self, method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
-        super().__init__(method,alg_ctrl,term_ctrl)
+        super().__init__(method, alg_ctrl, term_ctrl)
 
     def _default_termination_criterion(self):
 
@@ -271,8 +271,13 @@ class PymooOptimizationAlgorithmSingle(PymooOptimizationAlgorithm):
 
         #FINAL EVALUATION OF OPTIMAL SOLUTION TO BE STORED AS OptimizationProblemSolution
         #PRIVREMENO - RAZDVOJITI I DA NASLJEDJUJU
-        
+        #print(sol)
         x = sol.X
+
+        if x.all == None:
+            print('Algoritam nije uspio naci izvedivo rjesenje!')
+            return
+        print(x)
 
         out={}
         out['F'] = sol.F

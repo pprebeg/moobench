@@ -1,18 +1,17 @@
 import Analiza_okvira_v0_33 as ao
 import numpy as np
-from abc import ABC,abstractmethod
 from pymoo.factory  import get_mutation
 
 if __name__ == '__main__':
     try:
         from optbase import *
-        from optlib_pymoo_proto import PymooOptimizationAlgorithm
+        from optlib_pymoo_proto import PymooOptimizationAlgorithmSingle, PymooOptimizationAlgorithmMulti
     except ImportError:
         pass
 else:
     try:
         from femdir.optbase import *
-        from femdir.optlib_pymoo_proto import PymooOptimizationAlgorithm
+        from femdir.optlib_pymoo_proto import PymooOptimizationAlgorithmSingle, PymooOptimizationAlgorithmMulti
     except ImportError:
         pass
 
@@ -35,7 +34,7 @@ if __name__ == '__main__':
 
 
     
-    InputFile=ao.Input_file('ponton.txt',0.2)
+    InputFile=ao.Input_file('ponton_cijela_optimizacija.txt',0.2)
     InputFile.load_file()
     model = InputFile.create_model()            # u modelu je spremljen structure_obj preko kojeg imamo pristup svim funkcijama
     
@@ -172,14 +171,12 @@ if __name__ == '__main__':
 
     # dio postavki specifican za pymoo
     
-    mutation_obj=get_mutation('real_pm', eta=5, prob=0.2)
-    alg_ctrl={'pop_size':80,'mutation':mutation_obj}       #u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
-    term_ctrl={'n_gen':30}                                                       #Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje 
-    op.opt_algorithm = PymooOptimizationAlgorithm('ga', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)        #prvi argument string naziva algoritma, ostatak u obliku dictionary-ja ili tuple-a. mozda? Staviti da su defaultno None da se mogu ne poslati?
+    mutation_obj=get_mutation('real_pm', eta=20, prob=0.3)
+    alg_ctrl={'pop_size':2250,'mutation':mutation_obj}       #u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    term_ctrl={'n_gen':1000}                                                       #Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje 
+    op.opt_algorithm = PymooOptimizationAlgorithmSingle('ga', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)        #prvi argument string naziva algoritma, ostatak u obliku dictionary-ja ili tuple-a. mozda? Staviti da su defaultno None da se mogu ne poslati?
     #treba kreirati i termination criteria - pogledati je li potrebna nova klasa u optbase-u.
-
-    #op.termination(n_gen=40)PymooTermination # Od termination criteria imamo sljedci izbor
-                                   
+    
     res = op.optimize([])
     print(res)                  
     print(op.get_info())
