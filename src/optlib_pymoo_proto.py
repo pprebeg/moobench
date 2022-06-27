@@ -1,10 +1,13 @@
+from abc import ABC,abstractmethod
 import numpy as np
 from pymoo.core.problem import ElementwiseProblem
 from optbase import OptimizationProblem,OptimizationAlgorithm,DesignVariable,DesignCriteria,DesignConstraint,OptimizationProblemSolution,DesignObjective
 from typing import List, Dict
+from pymoo.core.result import Result
 from pymoo.factory import get_algorithm, get_termination
 from pymoo.optimize import minimize
 from pymoo.util.termination.default import SingleObjectiveDefaultTermination, MultiObjectiveDefaultTermination
+from copy import copy, deepcopy
 
 
 
@@ -44,7 +47,7 @@ class WrappedPymooProblem(ElementwiseProblem):
         
         self._callback_evaluate(x)
         
-        solution=self._callback_get_current_solution() # u ovaj solution se naime spremaju u
+        solution:OptimizationProblemSolution=self._callback_get_current_solution() # OptimizationProblemSolution u ovaj solution se naime spremaju u
 
         flist=[]
         glist=[]
@@ -69,13 +72,17 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
         self._method=method
         self._alg_options=alg_ctrl
         self._term_ctrl=term_ctrl
-        self._sol = None
+        self._sol:Result = None
         self.termination = None
+        self._optimal_solutions: List[OptimizationProblemSolution] = []
 
-        self._algorithm=get_algorithm(self._method,**self._alg_options) #dictionary self._options se raspakirava u keyword arguments. Nema greske ako je prazan dictionary..
+        self._algorithm=get_algorithm(self._method,**self._alg_options)     #dictionary self._options se raspakirava u keyword arguments. Nema greske ako je prazan dictionary..
                                                                             #self._opt_ctrl_iterables - ovo mozda nije prikladno! Tj. treba ipak prilagodba za algoritme pojedine.
                                                                             #Npr. RNSGA2 algoritam treba ref_points - tj. treba np.ndarray na drugom mjestu. al to samo taj algoritam, pa eto tome treba prilagoditi
+        
         #Dodjela atributa za termination criterion! - ako moguce vise ih postaviti! onda elif zamijeniti sa if!
+
+        #DODJELA ATRIBUTA ZA TERMINATION CRITERION
         if self._term_ctrl!=None:
             if self._term_ctrl.get('n_eval')!=None:
                 value=self._term_ctrl.get('n_eval')
@@ -91,9 +98,9 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
 
     @property
-    def sol(self):
+    def sol(self) -> Result:
 
-        return self._sol        # ovo ce biti ono sto vraca pymoo funkcija minimize.. ovdje - pymoo.Result
+        return self._sol      # ovo ce biti ono sto vraca pymoo funkcija minimize.. ovdje - pymoo.Result
 
     def _generate_pymoo_problem(self,
                 desvars: List[DesignVariable],
@@ -119,13 +126,11 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
             pymoo_cons.append(pymoocon)
 
         #Algorithm
-        alg = self._algorithm #ovaj bi objekt algorithm trebao instancirati korisnik u korisnickom programu kada definira algoritam optimizacije
+        alg = self._algorithm #Instancira se u __init__
 
         problem=WrappedPymooProblem(desvars, objectives, pymoo_cons, xl, xu, callback_evaluate, callback_get_current_solution) #ovaj callback_evaluate
 
         return problem
-
-        #funkcija callback_evaluate
 
     def _generate_termination_criterion(self,condition):
 
@@ -137,34 +142,9 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
         return termination
 
-    def _default_termination_criterion(self):
-
-        default_single=['ga', 'brkga', 'de', 'nelder-mead', 'pattern-search', 'cmaes','es','sres','isres']
-        default_multi=['nsga2','rnsga2','nsga3','unsga3','rnsga3','moead','agemoea','ctaea']
-
-        if self._method in default_multi:
-            termination = MultiObjectiveDefaultTermination(
-            x_tol=1e-8,
-            cv_tol=1e-6,
-            f_tol=0.0025,
-            nth_gen=5,
-            n_last=30,
-            n_max_gen=1000,
-            n_max_evals=100000)
-
-        elif self._method in default_single:
-            termination = SingleObjectiveDefaultTermination(
-            x_tol=1e-8,
-            cv_tol=1e-6,
-            f_tol=1e-6,
-            nth_gen=5,
-            n_last=20,
-            n_max_gen=1000,
-            n_max_evals=100000)
-
-        return termination
-
     def _get_bounds(self, dvs:List[DesignVariable]):
+
+        '''Method that extracts bounds from a list of DesignVariable objects. It returns two numpy arrays in a tuple. First element is a list of lower bounds, while second is a list of upper bounds.'''
 
         lbs = []
         ubs = []
@@ -180,6 +160,34 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
         for pymoo_dv in pymoo_dvs:
             x0.append(pymoo_dv.value)
         return x0
+    
+    @abstractmethod
+    def optimize(self,desvars: List[DesignVariable],
+                 constraints: List[DesignConstraint],
+                 objectives: List[DesignObjective],
+                 x0:np.ndarray,
+                 callback_evaluate,callback_get_current_solution) -> List[OptimizationProblemSolution]:
+
+        pass
+
+class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
+
+    def __init__(self, method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
+        super().__init__(method,alg_ctrl,term_ctrl)
+
+
+    def _default_termination_criterion(self):
+
+        termination = MultiObjectiveDefaultTermination(
+        x_tol=1e-8,
+        cv_tol=1e-6,
+        f_tol=0.0025,
+        nth_gen=5,
+        n_last=30,
+        n_max_gen=1000,
+        n_max_evals=100000)
+
+        return termination
 
     def optimize(self,desvars: List[DesignVariable],
                  constraints: List[DesignConstraint],
@@ -200,28 +208,82 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
         #CONDUCTING PYMOO OPTIMIZATION
             
-        sol = minimize(problem, self._algorithm, termination, seed=1, **self._alg_options) #ovo bi trebalo raditi baš kako treba! - termination=None, seed=None, verbose=False, display=None, callback=None, return_least_infeasible=False, save_history=False
+        sol = minimize(problem, self._algorithm, termination, seed=1, **self._alg_options)
 
         self._sol = sol #Sprema se pymoo.Result - klasa pymoo-a koja cuva optimalno i izvedivo (ako je dobiveno) rjesenje!
 
         #FINAL EVALUATION OF OPTIMAL SOLUTION TO BE STORED AS OptimizationProblemSolution
+        
+        x = sol.X
+            
+        solutions:List[OptimizationProblemSolution] = []
+        
+        for index, x_individual in enumerate(x):
+            out={}
+            out['F'] = sol.F[index]
+            out['G'] = sol.G[index]
+            problem._evaluate(x_individual,out)     #ovo bi trebalo spremiti u OptimizationProblemSolution, OptimizationProblem
+            opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku. ili izraditi copy objekta - funckionalnost na razini pymoo_proto.. ili u optbase prosiriti poziv ovog optimize-a sa jos jednim callbackom koji bi pozivao add_
+            solutions.append(deepcopy(opt_sol))   #append adds a reference only! in solutions, there are just pointers to opt_sol! it should actually make copies that are independent one of another, so that it doesn't change when opt_sol change                
+    
+        return solutions  
 
+class PymooOptimizationAlgorithmSingle(PymooOptimizationAlgorithm):
+
+    def __init__(self, method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
+        super().__init__(method,alg_ctrl,term_ctrl)
+
+    def _default_termination_criterion(self):
+
+        termination = SingleObjectiveDefaultTermination(
+        x_tol=1e-8,
+        cv_tol=1e-6,
+        f_tol=1e-6,
+        nth_gen=5,
+        n_last=20,
+        n_max_gen=1000,
+        n_max_evals=100000)
+
+        return termination
+
+    def optimize(self,desvars: List[DesignVariable],
+                 constraints: List[DesignConstraint],
+                 objectives: List[DesignObjective],
+                 x0:np.ndarray,
+                 callback_evaluate,callback_get_current_solution) -> List[OptimizationProblemSolution]:
+
+        #GENERATING PYMOO PROBLEM
+
+        problem = self._generate_pymoo_problem(desvars, constraints, objectives, callback_evaluate, callback_get_current_solution)
+
+        #GENERATING TERMINATION CRITERION BASED ON USER INPUT OR DEFAULT VALUES 
+        
+        if self.termination!=None:
+            termination = self._generate_termination_criterion(self.termination)
+        else:
+            termination = self._default_termination_criterion()
+
+        #CONDUCTING PYMOO OPTIMIZATION
+            
+        sol = minimize(problem, self._algorithm, termination, seed=1, **self._alg_options)
+
+        self._sol = sol #Tipa pymoo.Result - klasa pymoo-a koja cuva optimalno i izvedivo (ako je dobiveno) rjesenje!
+
+        #FINAL EVALUATION OF OPTIMAL SOLUTION TO BE STORED AS OptimizationProblemSolution
+        #PRIVREMENO - RAZDVOJITI I DA NASLJEDJUJU
+        
         x = sol.X
 
         out={}
-
         out['F'] = sol.F
-
         out['G'] = sol.G
-
         problem._evaluate(x,out)
 
         #STORING
 
-        opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku.
-
+        opt_sol:OptimizationProblemSolution = callback_get_current_solution()
         solutions:List[OptimizationProblemSolution] = []
-
-        solutions.append(opt_sol)
-
+        solutions.append(deepcopy(opt_sol))
+        
         return solutions
+  

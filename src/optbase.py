@@ -2,6 +2,7 @@ from abc import ABC,abstractmethod
 import numpy as np
 from enum import Enum
 from typing import List, Dict
+from copy import copy, deepcopy
 
 class ConstrType(Enum): #Enumaratori za kontrolu tijeka programa
     GT = 1
@@ -295,6 +296,8 @@ class RatioCallbackConnector(BasicGetConnector):
         return self._numerator.value/self._denominator.value
 
 class OptimizationProblemSolution():
+
+    '''Class for holding optimization solutions - values of design variables, objective functions and constraints. Storing is envoked in Optimization Problem class. '''
     def __init__(self, num_var, num_obj,num_constr):
         self._dvs = np.zeros(num_var)
         self._objs = np.zeros(num_obj)
@@ -372,7 +375,7 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             sols = self.opt_algorithm.optimize(self._desvars, #tu se zapravo poziva u ovom pocetnom slucaju (koji sam dobio od profesora) ScipyOptimizaionAlgorithm.. 
                  self._constraints,self._objectives, x0,        #self._desvars, self._constraints itd. - dodijeljene su preko metoda, preko korisnickih programa.. s onim add_constraint, add_design_variable.. itd. 
                  self.evaluate,self.get_current_sol)            #to su vlastite funkcije ove klase!!!!
-            self._solutions.extend(sols) #rjesenja koja vrati scipy ili pymoo algoritam na samom kraju! Moci ce biti vise provedbi provedeno i rjesenja samo prosirena. 
+            self._solutions.extend(sols) #extend metoda samo jednostavno spaja dvije liste ili dva iterabla u jedan. To je lista OptimizationProblemSolution
             return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a... 
 
     def get_current_sol(self):
@@ -484,10 +487,10 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             self._constraints[i].set_ndarray_connector(cnct)
 
     def add_to_solutions(self,sol):
-        self._solutions.append(sol)
+        self._solutions.append(sol)         
 
     def add_current_to_solutions(self):
-        self.add_to_solutions(self._cur_sol)
+        self.add_to_solutions(self._cur_sol)    #ovo s append nece raditi - jer append samo sprema pokazivac na tu vrijednost! Dodati barem deepcopy!
 
     def get_info(self):
         msg='------------ Optimization problem info -------------------\n'
