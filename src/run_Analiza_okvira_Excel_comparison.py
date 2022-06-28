@@ -1,5 +1,10 @@
 import Analiza_okvira_v0_33 as ao
 import numpy as np
+import matplotlib.pyplot as plt
+
+plt.style.use('_mpl-gallery')
+
+
 
 
 if __name__ == '__main__': #__name__='__main__' samo ako smo pokrenuli ovaj file! Ako smo ga importirali, onda nije! 
@@ -36,6 +41,24 @@ print(trapezius)
 
 for beam in model.beams:
     print(f'beam.M12: {beam.M12} = beam.intrinsic_diagram_w_trap[0]: {beam.intrinsic_diagram_w_trap[0]}')
+
+print('\n\n')
+
+# make data
+for i in range(len(model.beams)):
+    plt.figure()
+    n = len(model.beams[i].intrinsic_diagram_w_trap)
+    x1 = np.linspace(0,n,n)
+    y1= model.beams[i].intrinsic_diagram_w_trap
+    plt.title(f'Greda s cvorovima: {model.beams[i].node1.ID} - {model.beams[i].node2.ID}')
+    plt.ylabel('Moment [Nmm]')
+    # plot
+    x0= [0, n]
+    y0 = [0, 0]
+
+    plt.plot(x1, y1, 'b', linewidth=2.0)
+    plt.plot(x0,y0, 'y', linewidth=5.0)
+    plt.show()
 
 
     

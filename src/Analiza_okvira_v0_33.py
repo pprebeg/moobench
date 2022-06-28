@@ -442,12 +442,12 @@ class Beam():
 
         elif load_type=="qlinr":
 
-            self.intrinsic_diagram += 1/6*value/self.length*self.x**3 - 1/6*value*self.length*self.x #ovo provjeriti integracijom! 
+            self.intrinsic_diagram += - 1/6*value/self.length*self.x**3 + 1/6*value*self.length*self.x #ovo provjeriti integracijom! 
 
         elif load_type=="qlinl":
 
             moment_diag = np.zeros(len(self.x))
-            moment_diag += 1/6*value/self.length*self.x**3 - 1/6*value*self.length*self.x  #izracun na isti nacin kao i qlinr, samo koristenje numpy.flip da zamijeni vrijednosti oko y osi
+            moment_diag += - 1/6*value/self.length*self.x**3 + 1/6*value*self.length*self.x  #izracun na isti nacin kao i qlinr, samo koristenje numpy.flip da zamijeni vrijednosti oko y osi
             moment_diag = np.flip(moment_diag)
             self.intrinsic_diagram += moment_diag
 
@@ -473,19 +473,21 @@ class Beam():
 
     def max_stress(self):
 
-        trapezius = np.linspace(-self.M12,self.M21,len(self.x))    #racunanje trapeza zbog nejednakih momentata upetosti u cvorovima
+##        trapezius = np.linspace(self.M12, -self.M21,len(self.x))    #racunanje trapeza zbog nejednakih momentata upetosti u cvorovima
+##        self.intrinsic_diagram_w_trap = self.intrinsic_diagram + np.ravel(trapezius)             #np.ravel funkcija potrebna da se mogu zbrojiti dva niza - jer su inace drugacijih oblika (R,1) i (R,)
+
+        
 ##        trapezius = np.linspace(self.m12-self.M12, self.m21-self.M21, len(self.x))
-        self.intrinsic_diagram_w_trap = self.intrinsic_diagram - np.ravel(trapezius)             #np.ravel funkcija potrebna da se mogu zbrojiti dva niza - jer su inace drugacijih oblika (R,1) i (R,)
 ##        self.intrinsic_diagram_w_trap = self.intrinsic_diagram - np.ravel(trapezius)             #np.ravel funkcija potrebna da se mogu zbrojiti dva niza - jer su inace drugacijih oblika (R,1) i (R,)
         
-##        moment_node1 = abs(self.M12)
-##        moment_node2 = abs(self.M21)
+        moment_node1 = abs(self.M12)
+        moment_node2 = abs(self.M21)
 ##
-##        possible_maxs = [ moment_node1, moment_node2, self.max_moment_independently]
+        possible_maxs = [ moment_node1, moment_node2 ]
         
-        max_moment = np.abs(self.intrinsic_diagram_w_trap).max()                #pronalazak maksimalnog momenta na gredi, starija verzija - max(self.intrinsic_diagram_w_trap)
+##        max_moment = np.abs(self.intrinsic_diagram_w_trap).max()
 
-##        max_moment = float(max(possible_maxs))
+        max_moment = float(max(possible_maxs))
         self.max_s = abs(max_moment/self.prop.sect.Wy)                 #izracun maksimalnog naprezanja na gredi
 
 
@@ -555,10 +557,10 @@ class Structure():
 ##        uvjetovanost = np.linalg.norm(K,'fro')*np.linalg.norm(K_inv,'fro')       
 ##
 ##        print("Uvjetovanost matrice K iznosi: \n", uvjetovanost)
-        print(f'Matrica K: \n, {K[0:5,0:5]*1e-10}')
-        print(f'Inverz matrice K: \n {K_inv[0:5,0:5]*1e+12}')
-        print(f'Vektor momenata:\n {self.m}')
-        print('')
+##        print(f'Matrica K: \n, {K[0:5,0:5]*1e-10}')
+##        print(f'Inverz matrice K: \n {K_inv[0:5,0:5]*1e+12}')
+##        print(f'Vektor momenata:\n {self.m}')
+##        print('')
 
 
         phi = np.matmul(K_inv, self.m)       #MATRICNO MNOZENJE
@@ -574,7 +576,7 @@ class Structure():
         '''Method that based that calls function that calculates angular displacements, assigns those displacements to appropriate nodes and then calculates moments at the end of beams.'''
 
         phi = self.global_equation()
-        print(f'Phi: \n {phi}')
+##        print(f'Phi: \n {phi}')
 
         #Pripisujemo cvorovima njihove kuteve zakreta
 
