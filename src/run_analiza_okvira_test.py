@@ -26,8 +26,6 @@ if __name__ == '__main__':
 
             ao.calculate_problem(model)  #PRORACUN u Analizi_okvira
             #print(model.get_mass())
-            
-##            ao.get_stress_cons_lt_0()   #isto tako vrijedi i za Ratio tip constrainta. No, onda bi bilo smisleno i ostale na isti nacin implementirati! Npr. u obliku Ratia mogu biti i naprezanja! Obratiti pozornost na normiranje, istu skalu
                     
             return AnalysisResultType.OK
 
@@ -46,21 +44,10 @@ if __name__ == '__main__':
     
     #DIZAJNERSKE VARIJABLE
 
-    #Primjer dodavanja svih parametara u dizajnerske varijable - ovaj interfejs dodavanja treba olakšati! Primjerice sa funkcijom- GetSection(ID) pa se pošalje ID. ili GetSectionParameter(pa se posalje ID. Ili funkcija GetSections
-    #pa get parameters. uglavnom - nekak ovaj interface prema korisniku znatno pojednostavit.. 
-
-##    sections_to_opt=[1]
-##    for section_ID in sections_to_opt:
-##        parameters:List = model.GetSectionParameters(section_ID)
-##        for parameter in parameters:
-##            op.add_design_variable(DesignVariable('x'+str(i),NdArrayGetSetConnector(parameters,index), section.bounds[index][0],section.bounds[index][1])
-
-    sections_to_opt=[1,2,3]                 #Lista presjeka za optimizaciju
+    sections_to_opt=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]                 #Lista presjeka za optimizaciju
     
     lbs=[500, 5, None,None, 50, 5]
     ubs=[1500, 25, None, None, 500, 30] #None are just here to take place so that index works well
-
-    print(len(op._desvars))
     
     for section in model.sections:
         
@@ -80,29 +67,18 @@ if __name__ == '__main__':
                     index+=1
 
 #DO OVDJE RADI!
-                        
-##    for section in model.sections:
-##        
-##        if section.ID in sections_to_opt:
-##            
-##            for parameter in section.parameters:
-##                
-##                index=section.parameters.index(parameter)
-##                
-##                if index!=3 and index!=4:
-##                    op.add_design_variable(DesignVariable(name+str(i),NdArrayGetSetConnector(section.parameters,index),lb[index], ub[index] )) #section.bounds[index][0],section.bounds[index][1]
-##                    i+=1
 
     #print(model.sections[0].parameters)                          
     #op._desvars[0].value=900
     #print(model.sections[0].parameters)   #optbase moze pristupiti i promijeniti parametre! 
                     
     #FUNKCIJE CILJA
-
+    mass_0 = model.get_mass()
+    CG_y_0 = model.get_vertical_CG_position()
     
-    op.add_objective(DesignObjective('mass',CallbackGetConnector(model.get_mass)))
+    op.add_objective(DesignObjective('mass',RatioGetCallbackConnector(model.get_mass, mass_0)))
 
-    #op.add_objective(DesignObjective('vertical position of CG',CallbackGetConnector(model.get_vertical_CG_position)))
+    op.add_objective(DesignObjective('vertical position of CG',RatioGetCallbackConnector(model.get_vertical_CG_position, CG_y_0)))
                                        
     #U Analiza_okvira implementirana metoda Structure.get_mass()
     #Na slican nacin ugraditi jos koju metodu u model da korisniku bude lakse definirati neke ucestale funkcije cilja. N
@@ -172,18 +148,18 @@ if __name__ == '__main__':
     # dio postavki specifican za pymoo
     
     mutation_obj=get_mutation('real_pm', eta=20, prob=0.3)
-    alg_ctrl={'pop_size':2250,'mutation':mutation_obj}       #u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
-    term_ctrl={'n_gen':1000}                                                       #Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje 
-    op.opt_algorithm = PymooOptimizationAlgorithmSingle('ga', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)        #prvi argument string naziva algoritma, ostatak u obliku dictionary-ja ili tuple-a. mozda? Staviti da su defaultno None da se mogu ne poslati?
+    alg_ctrl={'pop_size':500,'mutation':mutation_obj}       #u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    term_ctrl={'n_gen':400}                                                       #Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje 
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('nsga2', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)        #prvi argument string naziva algoritma, ostatak u obliku dictionary-ja ili tuple-a. mozda? Staviti da su defaultno None da se mogu ne poslati?
     #treba kreirati i termination criteria - pogledati je li potrebna nova klasa u optbase-u.
     
     res = op.optimize([])
     print(res)                  
     print(op.get_info())
 
-    np.set_printoptions(suppress=True,precision=2)
-    for beam in model.beams:
-        print(beam.max_s)
+##    np.set_printoptions(suppress=True,precision=2)
+##    for beam in model.beams:
+##        print(beam.max_s)
     
     pass
 

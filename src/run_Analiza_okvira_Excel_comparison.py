@@ -47,9 +47,9 @@ print('\n\n')
 # make data
 for i in range(len(model.beams)):
     plt.figure()
-    n = len(model.beams[i].intrinsic_diagram_w_trap)
+    n = len(model.beams[i].intrinsic_diagram)
     x1 = np.linspace(0,n,n)
-    y1= model.beams[i].intrinsic_diagram_w_trap
+    y1= model.beams[i].intrinsic_diagram
     plt.title(f'Greda s cvorovima: {model.beams[i].node1.ID} - {model.beams[i].node2.ID}')
     plt.ylabel('Moment [Nmm]')
     # plot

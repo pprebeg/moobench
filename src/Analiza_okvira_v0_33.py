@@ -438,16 +438,16 @@ class Beam():
 
         elif load_type=="q":
 
-            self.intrinsic_diagram +=  -value/2*self.x**2+value*self.length/2*self.x   #parabola koja opisuje momentni dijagram"
+            self.intrinsic_diagram +=   value/2*self.x**2 - value*self.length/2*self.x   #parabola koja opisuje momentni dijagram"
 
         elif load_type=="qlinr":
 
-            self.intrinsic_diagram += - 1/6*value/self.length*self.x**3 + 1/6*value*self.length*self.x #ovo provjeriti integracijom! 
+            self.intrinsic_diagram +=  1/6*value/self.length*self.x**3 - 1/6*value*self.length*self.x #ovo provjeriti integracijom! 
 
         elif load_type=="qlinl":
 
             moment_diag = np.zeros(len(self.x))
-            moment_diag += - 1/6*value/self.length*self.x**3 + 1/6*value*self.length*self.x  #izracun na isti nacin kao i qlinr, samo koristenje numpy.flip da zamijeni vrijednosti oko y osi
+            moment_diag +=  1/6*value/self.length*self.x**3 - 1/6*value*self.length*self.x  #izracun na isti nacin kao i qlinr, samo koristenje numpy.flip da zamijeni vrijednosti oko y osi
             moment_diag = np.flip(moment_diag)
             self.intrinsic_diagram += moment_diag
 
@@ -475,19 +475,19 @@ class Beam():
 
 ##        trapezius = np.linspace(self.M12, -self.M21,len(self.x))    #racunanje trapeza zbog nejednakih momentata upetosti u cvorovima
 ##        self.intrinsic_diagram_w_trap = self.intrinsic_diagram + np.ravel(trapezius)             #np.ravel funkcija potrebna da se mogu zbrojiti dva niza - jer su inace drugacijih oblika (R,1) i (R,)
-
-        
+##
+##        
 ##        trapezius = np.linspace(self.m12-self.M12, self.m21-self.M21, len(self.x))
 ##        self.intrinsic_diagram_w_trap = self.intrinsic_diagram - np.ravel(trapezius)             #np.ravel funkcija potrebna da se mogu zbrojiti dva niza - jer su inace drugacijih oblika (R,1) i (R,)
+##
+##        max_moment = np.abs(self.intrinsic_diagram_w_trap).max()
         
         moment_node1 = abs(self.M12)
         moment_node2 = abs(self.M21)
-##
-        possible_maxs = [ moment_node1, moment_node2 ]
-        
-##        max_moment = np.abs(self.intrinsic_diagram_w_trap).max()
 
+        possible_maxs = [ moment_node1, moment_node2 ]
         max_moment = float(max(possible_maxs))
+        
         self.max_s = abs(max_moment/self.prop.sect.Wy)                 #izracun maksimalnog naprezanja na gredi
 
 
@@ -508,6 +508,8 @@ class Structure():
         y_cgs_calculated = False              #CONTROL PARAMETER FOR CALCULATION OF VERTICAL POSITION OF CENTER OF GRAVITY
         self.first_evaluation_of_global_equation = True
         self.m=[]                               #Vector of moments due to load (individual beam)
+        self.y_cgs_calculated = False
+
 
     @property
     def beam_stresses_array(self) -> List[float]:
@@ -625,16 +627,16 @@ class Structure():
 
         CG_position = 0
 
-        if y_cgs_calculated == False:
+        if self.y_cgs_calculated == False:
             self.calculate_y_cgs()
-            y_cgs_calculated = True
+            self.y_cgs_calculated = True
             
         for beam in self.beams:
 
             #CALCULATING numerator of formula CG = sum(beam.y_cg*beam.length*beam.prop.sect.A*beam.prop.mat.dens for beam in beams) / Structure.get_mass()
             CG_position += beam.y_cg * beam.length * beam.prop.sect.A * beam.prop.mat.dens
 
-        CG_position = y_cg_beam/self.get_mass() #KAKO NAPRAVITI DA PRORACUN MASE NEJDE PONOVNO? NEGO AKO JE VEC IZRACUNATA U OVOM KRUGU, DA JEDNOSTAVNO JU ISKORISTI? I KAK ZNATI DA JE TO AKTUALNA MASA, DA JE UPDATEA-ANA?
+        CG_position = CG_position/self.get_mass() #KAKO NAPRAVITI DA PRORACUN MASE NEJDE PONOVNO? NEGO AKO JE VEC IZRACUNATA U OVOM KRUGU, DA JEDNOSTAVNO JU ISKORISTI? I KAK ZNATI DA JE TO AKTUALNA MASA, DA JE UPDATEA-ANA?
             
 
         return CG_position
