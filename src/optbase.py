@@ -287,16 +287,18 @@ class RatioDesignConnector(BasicGetConnector):
     def value(self):
         return self._numerator.value/self._denominator.value
 
-class RatioCallbackConnector(BasicGetConnector):
+class RatioGetCallbackConnector(BasicGetConnector):
 
-    def __init__(self, num:DesignVariable, denom:DesignVariable):
+    '''Class used to connect and normalize objective functions and such.'''
+
+    def __init__(self, num_callback, denom_value:float):
         pass
-        self._numerator:DesignVariable = num
-        self._denominator:DesignVariable = denom
+        self._numerator_callback = num_callback
+        self._denominator_value:float = denom_value
 
     @property
     def value(self):
-        return self._numerator.value/self._denominator.value
+        return self._numerator_callback()/self._denominator_value
 
 class OptimizationProblemSolution():
 

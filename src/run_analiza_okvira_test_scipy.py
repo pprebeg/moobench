@@ -139,8 +139,8 @@ if __name__ == '__main__': #__name__='__main__' samo ako smo pokrenuli ovaj file
         x0.append(op.get_desvar(i).value)
 
         
-    opt_ctrl = {'method':'COBYLA', 'maxiter':40000}  #ovo je dictionary koji se šalje konstruktoru ScipyOptimizationAlgorithm-a.. to znaci da su ostale postavke defaultne.. 
-    #opt_ctrl = {'method': 'SLSQP'}
+    opt_ctrl = {'method':'COBYLA', 'maxiter':100000}  #ovo je dictionary koji se šalje konstruktoru ScipyOptimizationAlgorithm-a.. to znaci da su ostale postavke defaultne.. 
+    #opt_ctrl = {'method': 'SLSQP', 'maxiter':100000}
     op.opt_algorithm = ScipyOptimizationAlgorithm(opt_ctrl)         #postavljanje propertyja opt_algorithm (set metoda) i pritom spremanje objekta klase ScipyOptimizationAlgorithm
     res = op.optimize(x0)    #pozivanje optimize! ovo [2,0] su pocetni x0.. op je tipa OptimizationProblem() iz optbase.py 
     print(res)                  #printanje rezultata - solutions iz optlib_scipyja se prenosi u optbase što završava ovdje 
