@@ -11,7 +11,7 @@ def writecsv_listofdicts(filepath:str,listofdicts:List[Dict]):
 
 def writecsv_listofstrings(filepath:str,fieldnames:str,listofstrings: List[str]):
     with open(filepath, 'w', newline='') as csvfile:
-        csvfile.write(fieldnames+'\n')
+        csvfile.write(fieldnames)
         csvfile.writelines(listofstrings)
 
 def readcsv_listofdicts(filepath:str):

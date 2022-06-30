@@ -51,7 +51,7 @@ if __name__ == '__main__':
         def __init__(self):
             super().__init__(6,8) #ovo tu treba iz Analiza okvira možda pomoću posebnih funkcija dohvatiti.. Npr. get_number_of_design_variables, get_number_o itd. ako bude potrebno uopće za taj Analysis Executor.
 
-        def analyize(self): #u ovaj analyize (treba pravopisno stvari promijeniti) definiramo izgleda funkcije cilja, inarray - ulazni niz, outarray, izlazni niz, funckije cilja i vrijednosti ogranicenja
+        def analyze(self): #u ovaj analyize (treba pravopisno stvari promijeniti) definiramo izgleda funkcije cilja, inarray - ulazni niz, outarray, izlazni niz, funckije cilja i vrijednosti ogranicenja
 
             #DIZAJNERSKE VARIJABLE
             x1 = self.inarray[0]
@@ -129,5 +129,5 @@ if __name__ == '__main__':
     pairs = np.array(pairs)
     plot = get_visualization("scatter")
     plot.add(pairs, color="green", marker="x")
-    plot.grid()
+    #plot.grid()
     plot.show()

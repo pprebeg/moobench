@@ -1,8 +1,10 @@
 from abc import ABC,abstractmethod
 from typing import List,Dict
 from optbase import OptimizationProblem,OptimizationProblemSolution
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor,as_completed,Future
 import numpy as np
+from datetime import datetime
+from os.path import dirname
 
 class Job:
     def __init__(self, name):
@@ -18,12 +20,21 @@ class MultibjectiveOptimizationComparer(Job):
         self._ops:List[OptimizationProblem] = ops
         self._max_workers = max_workers
 
-
+    def optimize_task(self,op:OptimizationProblem,outfolder:str):
+        op.optimize_and_write(outfolder)
+        return op.name + ' - Optimization Finished'
 
     def execute(self):
+        dt_string = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
+        print(dt_string+' - Job started')
         with ProcessPoolExecutor(max_workers= self._max_workers) as executor:
             outfolder='D:\\Development\moobench\\out'
+            outfolder=dirname(dirname(__file__))+'\\out'
+            futures:List[Future] = []
             for op in self._ops:
-                executor.submit(op.optimize_and_write(outfolder))
-
+                futures.append(executor.submit(self.optimize_task,op,outfolder))
+            for future in as_completed(futures):
+                print(future.result())
+        dt_string = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
+        print(dt_string + ' - Job ended')
 

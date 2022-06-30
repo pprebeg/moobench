@@ -4,7 +4,8 @@ from enum import Enum
 from typing import List, Dict
 from copy import copy, deepcopy
 from utils import writecsv_listofstrings,readcsv_listofstrings
-
+import time
+from datetime import datetime
 class ConstrType(Enum): #Enumaratori za kontrolu tijeka programa
     GT = 1
     LT = 2
@@ -413,9 +414,16 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a... 
 
     def optimize_and_write(self,folder_path:str,x0= None):
-        print(self.name+ "optimization started")
+        tStart = time.perf_counter()  # početak mjerenja vremena
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        print(dt_string+" " + self.name+ " optimization started")
         self.optimize(x0)
-        print(self.name + "optimization ended")
+        tEnd = time.perf_counter()
+        dt = tEnd - tStart
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        print(dt_string + " " + self.name + " optimization ended, (runtime = {} seconds)".format(dt))
         path = folder_path + '\\' + self.name+'.csv'
         fieldnames = self.get_dvobjcon_names_line()
         sol_lines = self.get_solutions_string_list()
@@ -560,11 +568,11 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             names.append(item.name)
         for item in self._constraints:
             names.append(item.name)
-        return  ",".join(names)
+        return  ",".join(names)+'\n'
 
     def get_solutions_string_list(self) -> List[str]:
         sslist = []
         for sol in self._solutions:
-            sslist.append(sol.write_to_csvline())
+            sslist.append(sol.write_to_csvline()+'\n')
         return sslist
 

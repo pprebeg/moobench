@@ -86,15 +86,15 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
         if self._term_ctrl!=None:
             if self._term_ctrl.get('n_eval')!=None:
                 value=self._term_ctrl.get('n_eval')
-                self._termination=('n_eval',value)
+                self.termination=('n_eval',value)
 
             elif self._term_ctrl.get('n_gen')!=None:
                 value=self._term_ctrl.get('n_gen')
-                self._termination=('n_gen',value)
+                self.termination=('n_gen',value)
 
             elif self._term_ctrl.get('time')!=None:
                 value=self._term_ctrl.get('time')
-                self._termination=('time',value)
+                self.termination=('time',value)
 
 
     @property
@@ -138,7 +138,6 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
         value=condition[1]
 
         termination=get_termination(criterion,value)
-        print(termination)
 
         return termination
 
@@ -157,7 +156,7 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
     def _get_current_desvar_values(self, dvs:List[DesignVariable]):
         x0 = []
-        for pymoo_dv in pymoo_dvs:
+        for pymoo_dv in dvs:
             x0.append(pymoo_dv.value)
         return x0
     
