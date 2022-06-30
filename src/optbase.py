@@ -3,6 +3,7 @@ import numpy as np
 from enum import Enum
 from typing import List, Dict
 from copy import copy, deepcopy
+from utils import writecsv_listofstrings,readcsv_listofstrings
 
 class ConstrType(Enum): #Enumaratori za kontrolu tijeka programa
     GT = 1
@@ -89,7 +90,7 @@ class AnalysisExecutor(ABC):
         pass
 
     @abstractmethod
-    def analyize(self)->AnalysisResultType:                     # u ovoj analyize funkciji mogu se definirati zavisnosti outarray-a o inarray-ju, važno primjetiti - nema argumenta inarray.. naime, on se mijenja tijekom optimizacije
+    def analyze(self)->AnalysisResultType:                     # u ovoj analyize funkciji mogu se definirati zavisnosti outarray-a o inarray-ju, važno primjetiti - nema argumenta inarray.. naime, on se mijenja tijekom optimizacije
         pass                                                    # u evaluate metodi OptimizationProblem klase..
 
 class SimpleInputOutputArrayAnalysisExecutor(AnalysisExecutor): #jednostavni tip AnalysisExecutora - definiran je inarray kao lista svih ulaznih parametara (dizajnerski uglavnom) i izlaznih (vrijednosti funkcija ciljeva i ogranicenja)
@@ -158,14 +159,16 @@ class DesignVariable(ABC):
     @property
     def status(self):
         curval = self.value #current value?
-        if self.lower_bound > curval:           #izasao ispod donje granice
-            return ' lb --'                     #izlazi su doslovce ovi stringovi - korisnik mora znati kaj znace
-        elif self.upper_bound < curval:         #iznad gornje granice
-            return ' ub --'
-        elif np.isclose(curval,self.lower_bound):   #na donjoj granici - numpy funkcija ako su dva broja unutar tolerancije slicna - ili nizove more usporedjivati, element po element
-            return ' lb'
-        elif np.isclose(curval,self.upper_bound):   #na gornjoj granici
-            return ' ub'
+        if self.lower_bound is not None:
+            if self.lower_bound > curval:
+                return ' lb --'
+            elif np.isclose(curval, self.lower_bound):
+                return ' lb'
+        elif self.upper_bound is not None:
+            if self.upper_bound < curval:
+                return ' ub --'
+            elif np.isclose(curval,self.upper_bound):
+                return ' ub'
         return  ''
 
     def get_info(self):
@@ -337,6 +340,23 @@ class OptimizationProblemSolution():
         self._objs[:] = np.nan
         self._cons[:] = np.nan
 
+    def write_to_csvline(self):
+        ar:List[str] = (np.char.mod('%f', self._dvs)).tolist()
+        aro:List[str] = (np.char.mod('%f', self._objs)).tolist()
+        arc:List[str] = (np.char.mod('%f', self._cons)).tolist()
+        ar.extend(aro)
+        ar.extend(arc)
+        line = ",".join(ar)
+        return line
+
+    def read_from_csvline(self,line:str):
+        ar = np.fromstring(line, dtype=float, sep=',')
+        nv=self._dvs.count()
+        nvo=nv+self._objs.count()
+        self._dvs = ar[0:nv]
+        self._objs = ar[nv:nvo]
+        self._cons = ar[nvo:ar.count()]
+
 class OptimizationAlgorithm(ABC): #doslovce klasa koja samo sluzi tome da bude nacrt tome kako ce ScipyOptimizationAlgorithm izgledati... 
     def __init__(self,opt_ctrl):
         pass
@@ -354,7 +374,9 @@ class OptimizationAlgorithm(ABC): #doslovce klasa koja samo sluzi tome da bude n
         pass
 
 class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je vecina funkcionalnosti implementirana
-    def __init__(self):
+    def __init__(self,name='Optimization problem name'):
+        self._name = name
+        self._description = ''
         self._desvars:List[DesignVariable] = []
         self._constraints: List[DesignConstraint] = []
         self._objectives: List[DesignObjective] = []
@@ -365,7 +387,17 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         self._opt_algorithm:OptimizationAlgorithm = None #dodjeljuje se kroz korisnicki program op.opt_algorithm = ... u primjeru - ScipyOptimizationAlgorithm
         pass
 
+    @property
+    def description(self):
+        return self._description
 
+    @description.setter
+    def description(self, value):
+        self._description = value
+
+    @property
+    def name(self):
+        return self._name
     #implemented methods
     def optimize(self,x0= None):
         if self.opt_algorithm is not None: # u scipy primjeru to je spremljen objekt tipa ScipyOptimizationAlgorithm 
@@ -378,6 +410,15 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             self._solutions.extend(sols) #extend metoda samo jednostavno spaja dvije liste ili dva iterabla u jedan. To je lista OptimizationProblemSolution
             return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a... 
 
+    def optimize_and_write(self,folder_path:str,x0= None):
+        print(self.name+ "optimization started")
+        self.optimize(x0)
+        print(self.name + "optimization ended")
+        path = folder_path + '\\' + self.name+'.csv'
+        fieldnames = self.get_dvobjcon_names_line()
+        sol_lines = self.get_solutions_string_list()
+        writecsv_listofstrings(path, fieldnames, sol_lines)
+
     def get_current_sol(self):
         return self._cur_sol
     
@@ -387,7 +428,7 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
 
         do_save = True
         for execu in self._analysis_executors:
-            res = execu.analyize()
+            res = execu.analyze()
             if res != (AnalysisResultType.OK):
                 do_save = False
                 break
@@ -494,6 +535,9 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
 
     def get_info(self):
         msg='------------ Optimization problem info -------------------\n'
+        msg += 'Name: {0}\n'.format(self.name)
+        if self.description != '':
+            msg += '{0}\n'.format(self.description)
         msg+= 'Num variables: {0}\n'.format(self.num_var)
         for item in self._desvars:
             msg+=item.get_info()+'\n'
@@ -504,5 +548,21 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         for item in self._objectives:
             msg += item.get_info() + '\n'
         msg += '-------------------------------------------------------'
-        return print(msg)
+        return msg
+
+    def get_dvobjcon_names_line(self) -> List[str]:
+        names = []
+        for item in self._desvars:
+            names.append(item.name)
+        for item in self._objectives:
+            names.append(item.name)
+        for item in self._constraints:
+            names.append(item.name)
+        return  ",".join(names)
+
+    def get_solutions_string_list(self) -> List[str]:
+        sslist = []
+        for sol in self._solutions:
+            sslist.append(sol.write_to_csvline())
+        return sslist
 

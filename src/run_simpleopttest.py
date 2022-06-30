@@ -20,7 +20,7 @@ if __name__ == '__main__': #ako smo pokrenuli baš ovaj fajl, a ne ga pozvali iz
         def __init__(self):
             super().__init__(2,4)
 
-        def analyize(self): #u ovaj analyize (treba pravopisno stvari promijeniti) definiramo izgleda funkcije cilja, inarray - ulazni niz, outarray, izlazni niz, funckije cilja i vrijednosti ogranicenja
+        def analyze(self): #u ovaj analyize (treba pravopisno stvari promijeniti) definiramo izgleda funkcije cilja, inarray - ulazni niz, outarray, izlazni niz, funckije cilja i vrijednosti ogranicenja
             self.outarray[0] = (self.inarray[0] - 1)**2.0 + (self.inarray[1] - 2.5)**2.0
             self.outarray[1] =  self.inarray[0] - 2 * self.inarray[1]   #nesto kao x1-2*x2>0
             self.outarray[2] = -self.inarray[0] - 2 * self.inarray[1]   #-x1-2*x2>0
