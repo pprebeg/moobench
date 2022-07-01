@@ -27,6 +27,9 @@ from jmetal.operator.mutation import NullMutation, BitFlipMutation, PolynomialMu
 from jmetal.operator.crossover import NullCrossover, PMXCrossover, CXCrossover, SBXCrossover, IntegerSBXCrossover, SPXCrossover, DifferentialEvolutionCrossover, CompositeCrossover
 from jmetal.operator.selection import RouletteWheelSelection, BinaryTournamentSelection, BestSolutionSelection, NaryRandomSolutionSelection, DifferentialEvolutionSelection, RandomSolutionSelection, RankingAndCrowdingDistanceSelection, RankingAndFitnessSelection, BinaryTournament2Selection
 
+#IMPORT COMPARATORS
+from jmetal.util.comparator import EqualSolutionsComparator, SolutionAttributeComparator, MultiComparator, RankingAndCrowdingDistanceComparator, StrengthAndKNNDistanceComparator, OverallConstraintViolationComparator, DominanceComparator, GDominanceComparator, EpsilonDominanceComparator
+
 #IMPORT TERMINATION CRITERIA
 from jmetal.util.termination_criterion import StoppingByEvaluations, StoppingByTime, StoppingByKeyboard, StoppingByQualityIndicator
 
@@ -106,41 +109,63 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a jmetal problem that is suitable for jmetal interface - function minimize. '''
 
-    def __init__(self, method:str, operators:Dict=None, alg_ctrl:Dict=None, termination_criterion=None):
+    def __init__(self, method:str, alg_ctrl:Dict=None):
 
         self._method=method.lower()
-        self._selection = None
-        self._crossover = None
-        self._mutation = None
-
-        self._termination_criterion = termination_criterion
+        
+        mutation = None
+        crossover = None
+        sampling = None
+        selection = None
+        termination = None
 
         #Dictionary s postavkama
-        self._alg_options = alg_ctrl
+
+        self._alg_options = {}
+
         self._sol = None
         
         
-        self._selection = operators.get('selection')
-        self._crossover = operators.get('crossover')
-        self._mutation = operators.get('mutation')
+        selection = alg_ctrl.get('selection')
+        crossover = alg_ctrl.get('crossover')
+        mutation = alg_ctrl.get('mutation')
+        termination = alg_ctrl.get('termination')
+        sampling = alg_ctrl.get('sampling')
+        
+        if sampling != None:
+            alg_ctrl.pop('sampling')
+            sampling_obj = self._generate_sampling(sampling)
+            self._alg_options['sampling'] = sampling_obj
 
-         #dictionary self._options se raspakirava u keyword arguments. Nema greske ako je prazan dictionary..
-                                                                            #self._opt_ctrl_iterables - ovo mozda nije prikladno! Tj. treba ipak prilagodba za algoritme pojedine.
-                                                                            #Npr. RNSGA2 algoritam treba ref_points- tj. treba np.ndarray na drugom mjestu. al to samo taj algoritam, pa eto tome treba prilagoditi
+        if selection != None:
+            alg_ctrl.pop('selection')
+            selection_obj = self._generate_selection(selection)
+            self._alg_options['selection'] = selection_obj
 
-        #POSTAVKE (ATRIBUTI) za kreiranje TerminationCriterion! - ako moguce vise ih postaviti! onda elif zamijeniti sa if!
-##        if self._termination!=None:
-##            if self._termination.get('n_eval')!=None:
-##                value=self._termination.get('n_eval')
-##                self._termination=('n_eval',value)
-##
-##            elif self._termination.get('keyboard')!=None:
-##                self._termination=('keyboard')
-##
-##            elif self._termination.get('time')!=None:
-##                value=self._termination.get('time')
-##                self._termination=('time',value)
-##
+        if crossover != None:
+            alg_ctrl.pop('crossover')
+            print(crossover)
+            crossover_obj = self._generate_crossover(crossover)
+            self._alg_options['crossover'] = crossover_obj
+
+        if mutation != None:
+            alg_ctrl.pop('mutation')
+            mutation_obj = self._generate_mutation(mutation)
+            self._alg_options['mutation'] = mutation_obj            
+          
+        if termination != None:
+            alg_ctrl.pop('termination')
+            self._termination = self._generate_termination(termination)
+            self._alg_options['termination_criterion'] = self._termination           
+            
+
+        #self._create_termination_criterion()
+
+        self._alg_options.update(alg_ctrl)
+             
+
+
+
 
     @property
     def sol(self):
@@ -174,87 +199,158 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
 
         return problem
 
-    def _instantiate_jmetal_algorithm_object(self, jmetal_algorithm_options):
+    def _instantiate_jmetal_algorithm_object(self, problem, jmetal_algorithm_options):
 
         if self._method == 'gde3':
-            return GDE3(**jmetal_algorithm_options)
+            return GDE3(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'hype':
-            return HYPE(**jmetal_algorithm_options)
+            return HYPE(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'ibea':
-            return IBEA(**jmetal_algorithm_options)
+            return IBEA(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'mocell':
-            return MOCell(**jmetal_algorithm_options)
+            return MOCell(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'moea/d':
-            return MOEAD(**jmetal_algorithm_options)
+            return MOEAD(problem=problem, **jmetal_algorithm_options)
 
-        elif self._method == 'nsga-ii':
-            return NSGAII(**jmetal_algorithm_options)
+        elif self._method == 'nsga2':
+            return NSGAII(problem=problem, **jmetal_algorithm_options)
 
-        elif self._method == 'nsga-iii':
-            return NSGAIII(**jmetal_algorithm_options)
+        elif self._method == 'nsga3':
+            return NSGAIII(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'spea2':
-            return SPEA2(**jmetal_algorithm_options)
+            return SPEA2(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'omopso':
-            return OMOPSO(**jmetal_algorithm_options)
+            return OMOPSO(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'smpso':
-            return SMPSO(**jmetal_algorithm_options)
+            return SMPSO(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'es':
-            return EvolutionStrategy(**jmetal_algorithm_options)
+            return EvolutionStrategy(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'ga':
             
-            return GeneticAlgorithm(**jmetal_algorithm_options)
+            return GeneticAlgorithm(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'ls':
-            return LocalSearch(**jmetal_algorithm_options)
+            return LocalSearch(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'sa':
-            return SimulatedAnnealing(**jmetal_algorithm_options)
+            return SimulatedAnnealing(problem=problem, **jmetal_algorithm_options)
 
-    def _get_mutation(self):
+    def _generate_crossover(self, item): 
 
-        if self._mutation[0]==None:
-            return NullMutation()
-        elif self._mutation[0]=='':
-            pass
-
-    def _get_crossover(self):
-        pass
-
-    def _get_selection(self):                   #druga opcija definiranja 
-
+        type_of_crossover:str = item.get('name')
+        item.pop('name')
         
-        selection_type = self._selection[0].lower()
+        if type_of_crossover == 'null':
+            crossover = NullCrossover(**item)
+        elif type_of_crossover == 'pmx':    #probability
+            crossover = PMXCrossover(**item)
+        elif type_of_crossover == 'cx':     #probability
+            crossover = CXCrossover(**item)
+        elif type_of_crossover == 'sbx':    #probability, distribution index (oblik 20.0)
+            crossover = SBXCrossover(**item)
+        elif type_of_crossover == 'int_sbx':    #probability, distribution index (oblik 20.0)
+            crossover = IntegerSBXCrossover(**item)
+        elif type_of_crossover == 'spx':    #probability
+            crossover = SPXCrossover(**item)
+        elif type_of_crossover == 'de':     #CR, F i K
+            crossover = DifferentialEvolutionCrossover(**item)
+        elif type_of_crossover == 'composite':  #crossover_operator_list
+            crossover = CompositeCrossover(**item)
 
-        #SETTINGS DICTIONARY  
-        settings:Dict=self._selection[1]
+        return crossover
+
+    def _generate_mutation(self, item:Dict):
+
+        type_of_mutation:str = item.get('name')
+        item.pop('name')
         
-        if selection_type=='rws':        #ili da ovo ipak user sam kreira pa pošalje ovoj biblioteci iz korisnickog programa?! pokusati tako  
-            return RouletteWheelSelection(**settings)   #za settingse se onda koriste keyword argumenti kakve bi koristili i direktno.. tipa probability=0.2
-        elif selection_type=='bts':
-            return BinaryTournamentSelection(**settings)
-        elif selection_type=='bss':
-            return BestSolutionSelection(**settings)
-        elif selection_type=='nrss':
-            return NaryRandomSolutionSelection(**settings)
-        elif selection_type=='des':
-            return DifferentialEvolutionSelection(**settings)
-        elif selection_type=='rss':
-            return RandomSolutionSelection(**settings)
-        elif selection_type=='rcds':
-            return RankingAndCrowdingDistanceSelection(**settings)
-        elif selection_type=='rfs':
-            return RankingAndFitnessSelection(**settings)
-        elif selection_type=='bt2s':
-            return BinaryTournament2Selection(**settings)
+        if type_of_mutation == 'null':
+            mutation = NullMutation(**item)
+        elif type_of_mutation == 'bitflip': #probability
+            mutation = BitFlipMutation(**item)
+        elif type_of_mutation == 'polynomial':  #probability, distribution_index: float = 0.20
+            mutation = PolynomialMutation(**item)
+        elif type_of_mutation == 'integer_polynomial':  #probability, distribution_index: float = 0.20
+            mutation = IntegerPolynomialMutation(**item)
+        elif type_of_mutation == 'simple_random':   #probability
+            mutation = SimpleRandomMutation(**item)
+        elif type_of_mutation == 'uniform': # probability, perturbation 0.5
+            mutation = UniformMutation(**item)
+        elif type_of_mutation == 'non_uniform': # probability, perturbation: float = 0.5, max_iterations: int = 0.5
+            mutation = NonUniformMutation(**item)
+        elif type_of_mutation == 'permutation_swap':    # ?? nema konstruktor ??
+            mutation = PermutationSwapMutation(**item)
+        elif type_of_mutation == 'composite':   # mutation_operator_list:[Mutation]
+            mutation = CompositeMutation(**item)
+        elif type_of_mutation == 'scramble':    # solution: PermutationSolution
+            mutation = ScrambleMutation(**item)
+
+        return mutation
+
+    def _generate_selection(self, item):
+        
+        type_of_selection:str = item.get('name')
+        item.pop('name')
+
+        #poziv kreiranja comparatora! 
+##        type_of_comparator = item.get('comparator')
+##        item.pop('comparator')
+##        if type_of_comparator == 'esc':
+##            comparator = EqualSolutionsComparator()
+##            item.['comparator'] = comparator
+##            pass
+##        elif type_of_comparator == 'sac':
+##            comparator = SolutionAttributeComparator()
+##            item.['comparator'] = comparator
+##            pass
+        
+        if type_of_selection == 'rws':
+            selection = RouletteWheelSelection(**item)
+        elif type_of_selection == 'bts':
+            selection = BinaryTournamentSelection(**item)
+        elif type_of_selection == 'bss':  #comparator: Comparator = DominanceComparator()
+            selection = BestSolutionSelection(**item)
+        elif type_of_selection == 'nrss':  #number_of_solutions_to_be_returned
+            selection = NaryRandomSolutionSelection(**item)
+        elif type_of_selection == 'des':   #
+            selection = DifferentialEvolutionSelection(**item)
+        elif type_of_selection == 'rss': 
+            selection = RandomSolutionSelection(**item)
+        elif type_of_selection == 'rcds': #max_population_size: int, dominance_comparator: Comparator = DominanceComparator()
+            selection = RankingAndCrowdingDistanceSelection(**item)
+        elif type_of_selection == 'rfs':    #                  max_population_size: int, reference_point: S, dominance_comparator: Comparator = DominanceComparator()
+            selection = RankingAndFitnessSelection(**item)
+        elif type_of_selection == 'bt2s':   # comparator_list: List[Comparator]
+            selection = BinaryTournament2Selection(**item)
+
+        return selection
+
+    def _generate_termination(self, item):
+
+        type_of_termination:str = item.get('name')
+        item.pop('name')
+
+        #generiranje quality indicatora! 
+        
+        if type_of_termination == 'n_eval':
+            termination = StoppingByEvaluations(**item)
+        elif type_of_termination == 'time': #max_seconds
+            termination = StoppingByTime(**item)
+        elif type_of_termination == 'keyboard':  #
+            termination = StoppingByKeyboard(**item)
+        elif type_of_termination == 'qi':  #quality_indicator: QualityIndicator, expected_value: float, degree: float
+            termination = StoppingByQualityIndicator(**item)
+            
+        return termination
 
 
     def _get_bounds(self, dvs:List[DesignVariable]):
@@ -287,9 +383,9 @@ class jmetalOptimizationAlgorithmMulti(jmetalOptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a jmetal problem that is suitable for jmetal interface - function minimize. '''
 
-    def __init__(self, method:str, operators:Dict=None, alg_ctrl:Dict=None, termination_criterion=None):
+    def __init__(self, method:str, alg_ctrl:Dict=None):
 
-        super().__init__(method, operators, alg_ctrl, termination_criterion)
+        super().__init__(method, alg_ctrl)
         
 
     def optimize(self,desvars: List[DesignVariable],
@@ -306,32 +402,7 @@ class jmetalOptimizationAlgorithmMulti(jmetalOptimizationAlgorithm):
             print('Problem is not defined!')
             raise
 
-        #OPERATORS
-        mutation = self._mutation
-        crossover = self._crossover
-        selection = self._selection
-
-        #TERMINATION
-        termination_criterion = self._termination_criterion
-        
-        jmetal_algorithm_options={}
-
-        if problem != None:
-            jmetal_algorithm_options['problem']=problem
-        if mutation != None:
-            jmetal_algorithm_options['mutation']=mutation
-        if crossover != None:
-            jmetal_algorithm_options['crossover']=crossover
-        if selection != None:
-            jmetal_algorithm_options['selection']=selection
-        if termination_criterion != None:
-            jmetal_algorithm_options['termination_criterion']=termination_criterion
-
-        #self._create_termination_criterion()
-
-        jmetal_algorithm_options.update(self._alg_options)
-            
-        self._algorithm = self._instantiate_jmetal_algorithm_object(jmetal_algorithm_options) #sto ako nema tog parametra mozda try catch, pa putem prepoznavanja koji argument ne postoji, ponovno pozvat kreiranje algoritma
+        self._algorithm = self._instantiate_jmetal_algorithm_object(problem, self._alg_options)
 
         self._algorithm.run()
 
@@ -354,9 +425,9 @@ class jmetalOptimizationAlgorithmSingle(jmetalOptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a jmetal problem that is suitable for jmetal interface - function minimize. '''
 
-    def __init__(self, method:str, operators:Dict=None, alg_ctrl:Dict=None, termination_criterion=None):
+    def __init__(self, method:str, alg_ctrl:Dict=None):
 
-        super().__init__(method, operators, alg_ctrl, termination_criterion)
+        super().__init__(method, alg_ctrl)
 
     def optimize(self,desvars: List[DesignVariable],
                  constraints: List[DesignConstraint],
@@ -371,33 +442,8 @@ class jmetalOptimizationAlgorithmSingle(jmetalOptimizationAlgorithm):
         if problem==None:
             print('Problem is not defined!')
             raise
-
-        #OPERATORS
-        mutation = self._mutation
-        crossover = self._crossover
-        selection = self._selection
-
-        #TERMINATION
-        termination_criterion = self._termination_criterion
         
-        jmetal_algorithm_options={}
-
-        if problem != None:
-            jmetal_algorithm_options['problem']=problem
-        if mutation != None:
-            jmetal_algorithm_options['mutation']=mutation
-        if crossover != None:
-            jmetal_algorithm_options['crossover']=crossover
-        if selection != None:
-            jmetal_algorithm_options['selection']=selection
-        if termination_criterion != None:
-            jmetal_algorithm_options['termination_criterion']=termination_criterion
-
-        #self._create_termination_criterion()
-
-        jmetal_algorithm_options.update(self._alg_options)
-            
-        self._algorithm = self._instantiate_jmetal_algorithm_object(jmetal_algorithm_options) #sto ako nema tog parametra mozda try catch, pa putem prepoznavanja koji argument ne postoji, ponovno pozvat kreiranje algoritma
+        self._algorithm = self._instantiate_jmetal_algorithm_object(problem, self._alg_options)
 
         self._algorithm.run()
 

@@ -387,7 +387,7 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         self._solutions:List[OptimizationProblemSolution]= []
         self._analysis_executors:List[AnalysisExecutor]=[]  
         self._use_ndarray_connectors = False            #ovo se nigdje ne dodjeljuje na True u simpleopt testu ni ovdje, a opet dohvaćanje vrijednosti i dalje radi.. I, radi dobro. Potvrdjeno. 
-        self._opt_algorithm:OptimizationAlgorithm = None #dodjeljuje se kroz korisnicki program op.opt_algorithm = ... u primjeru - ScipyOptimizationAlgorithm
+        self.opt_algorithm:OptimizationAlgorithm = None #dodjeljuje se kroz korisnicki program op.opt_algorithm = ... u primjeru - ScipyOptimizationAlgorithm
         pass
 
     @property

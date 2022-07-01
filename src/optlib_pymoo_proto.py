@@ -4,7 +4,7 @@ from pymoo.core.problem import ElementwiseProblem
 from optbase import OptimizationProblem,OptimizationAlgorithm,DesignVariable,DesignCriteria,DesignConstraint,OptimizationProblemSolution,DesignObjective
 from typing import List, Dict
 from pymoo.core.result import Result
-from pymoo.factory import get_algorithm, get_termination
+from pymoo.factory import get_algorithm, get_sampling, get_selection, get_crossover, get_mutation, get_termination
 from pymoo.optimize import minimize
 from pymoo.util.termination.default import SingleObjectiveDefaultTermination, MultiObjectiveDefaultTermination
 from copy import copy, deepcopy
@@ -67,36 +67,63 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a pymoo problem that is suitable for pymoo interface - function minimize. '''
 
-    def __init__(self,method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
+    def __init__(self,method:str,alg_ctrl:Dict=None, minimize_ctrl:Dict = None):    #ovo neka ostane za pymoo specificno! da se jos moze poslati jedan dictionary koji dodatno kontrolira minimize funkciju! 
 
         self._method=method
-        self._alg_options=alg_ctrl
-        self._term_ctrl=term_ctrl
+        self.termination_generated = False
+
+        mutation = None
+        crossover = None
+        sampling = None
+        selection = None
+        termination = None
+
+        self._alg_options = {}
+        self._minimize_ctrl = {}
+
         self._sol:Result = None
-        self.termination = None
         self._optimal_solutions: List[OptimizationProblemSolution] = []
-
-        self._algorithm=get_algorithm(self._method,**self._alg_options)     #dictionary self._options se raspakirava u keyword arguments. Nema greske ako je prazan dictionary..
-                                                                            #self._opt_ctrl_iterables - ovo mozda nije prikladno! Tj. treba ipak prilagodba za algoritme pojedine.
-                                                                            #Npr. RNSGA2 algoritam treba ref_points - tj. treba np.ndarray na drugom mjestu. al to samo taj algoritam, pa eto tome treba prilagoditi
         
-        #Dodjela atributa za termination criterion! - ako moguce vise ih postaviti! onda elif zamijeniti sa if!
+        mutation = alg_ctrl.get('mutation')
+        if mutation != None:
+            alg_ctrl.pop('mutation')
+            mutation_obj = self._generate_mutation(mutation)
+            self._alg_options['mutation'] = mutation_obj
+            
+        crossover = alg_ctrl.get('crossover')
+        if crossover != None:
+            alg_ctrl.pop('crossover')
+            print(crossover)
+            crossover_obj = self._generate_crossover(crossover)
+            self._alg_options['crossover'] = crossover_obj
+            
+        sampling = alg_ctrl.get('sampling')
+        if sampling != None:
+            alg_ctrl.pop('sampling')
+            sampling_obj = self._generate_sampling(sampling)
+            self._alg_options['sampling'] = sampling_obj
+            
+        selection = alg_ctrl.get('selection')
+        if selection != None:
+            alg_ctrl.pop('selection')
+            selection_obj = self._generate_selection(selection)
+            self._alg_options['selection'] = selection_obj
+            
+        termination = alg_ctrl.get('termination')
+        if termination != None:
+            alg_ctrl.pop('termination')
+            self._termination = self._generate_termination(termination)
+            self.termination_generated = True
 
-        #DODJELA ATRIBUTA ZA TERMINATION CRITERION
-        if self._term_ctrl!=None:
-            if self._term_ctrl.get('n_eval')!=None:
-                value=self._term_ctrl.get('n_eval')
-                self.termination=('n_eval',value)
+        
+        self._alg_options.update(alg_ctrl)
+        
+        self._algorithm=get_algorithm(self._method,**self._alg_options)     #dictionary self._options se raspakirava u keyword arguments. Nema greske ako je prazan dictionary..
+                                                                            #Npr. RNSGA2 algoritam treba ref_points - tj. treba np.ndarray na drugom mjestu. al to samo taj algoritam, pa eto tome treba prilagoditi
+        if minimize_ctrl != None:
+            self._minimize_ctrl.update(minimize_ctrl)
 
-            elif self._term_ctrl.get('n_gen')!=None:
-                value=self._term_ctrl.get('n_gen')
-                self.termination=('n_gen',value)
-
-            elif self._term_ctrl.get('time')!=None:
-                value=self._term_ctrl.get('time')
-                self.termination=('time',value)
-
-
+        
     @property
     def sol(self) -> Result:
 
@@ -131,13 +158,41 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
         problem=WrappedPymooProblem(desvars, objectives, pymoo_cons, xl, xu, callback_evaluate, callback_get_current_solution) #ovaj callback_evaluate
 
         return problem
+    
+    def _generate_crossover(self, item):
 
-    def _generate_termination_criterion(self,condition):
+        type_of_crossover:str = item.get('name')
+        item.pop('name')
 
-        criterion=condition[0]
-        value=condition[1]
+        crossover = get_crossover(type_of_crossover, **item)
+        
 
-        termination=get_termination(criterion,value)
+        return crossover
+
+    def _generate_mutation(self, item:Dict):
+
+        type_of_mutation:str = item.get('name')
+        item.pop('name')
+        print(item)
+        mutation = get_mutation(type_of_mutation, **item)
+
+        return mutation
+
+    def _generate_selection(self, item):
+
+        type_of_selection:str = item.get('name')
+        item.pop('name')
+
+        selection = get_selection(type_of_selection, **item)
+
+        return selection
+
+    def _generate_termination(self, item):
+
+        type_of_termination:str = item[0]
+        value:int = item[1]
+
+        termination = get_termination(type_of_termination, value)
 
         return termination
 
@@ -171,10 +226,12 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
 class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
 
-    def __init__(self, method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
-        super().__init__(method,alg_ctrl,term_ctrl)
+    def __init__(self, method:str,alg_ctrl:Dict=None, minimize_ctrl:Dict = None):
+        super().__init__(method,alg_ctrl, minimize_ctrl)
 
-
+        if not self.termination_generated:
+            self._termination = self._default_termination_criterion()
+            
     def _default_termination_criterion(self):
 
         termination = MultiObjectiveDefaultTermination(
@@ -196,18 +253,11 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
 
         #GENERATING PYMOO PROBLEM
 
-        problem = self._generate_pymoo_problem(desvars, constraints, objectives, callback_evaluate, callback_get_current_solution)
-
-        #GENERATING TERMINATION CRITERION BASED ON USER INPUT OR DEFAULT VALUES 
-        
-        if self.termination!=None:
-            termination = self._generate_termination_criterion(self.termination)
-        else:
-            termination = self._default_termination_criterion()
+        problem = self._generate_pymoo_problem(desvars, constraints, objectives, callback_evaluate, callback_get_current_solution)        
 
         #CONDUCTING PYMOO OPTIMIZATION
             
-        sol = minimize(problem, self._algorithm, termination, seed=1, **self._alg_options)
+        sol = minimize(problem, self._algorithm, self._termination, **self._minimize_ctrl)
 
         self._sol = sol #Sprema se pymoo.Result - klasa pymoo-a koja cuva optimalno i izvedivo (ako je dobiveno) rjesenje!
 
@@ -221,7 +271,7 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
             out={}
             out['F'] = sol.F[index]
             out['G'] = sol.G[index]
-            problem._evaluate(x_individual,out)     #ovo bi trebalo spremiti u OptimizationProblemSolution, OptimizationProblem
+            problem._evaluate(x_individual,out)     #ovo sprema OptimizationProblemSolution u OptimizationProblem
             opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku. ili izraditi copy objekta - funckionalnost na razini pymoo_proto.. ili u optbase prosiriti poziv ovog optimize-a sa jos jednim callbackom koji bi pozivao add_
             solutions.append(deepcopy(opt_sol))   #append adds a reference only! in solutions, there are just pointers to opt_sol! it should actually make copies that are independent one of another, so that it doesn't change when opt_sol change                
     
@@ -229,8 +279,11 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
 
 class PymooOptimizationAlgorithmSingle(PymooOptimizationAlgorithm):
 
-    def __init__(self, method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
-        super().__init__(method, alg_ctrl, term_ctrl)
+    def __init__(self, method:str,alg_ctrl:Dict=None, minimize_ctrl:Dict = None):
+        super().__init__(method, alg_ctrl, minimize_ctrl)
+
+        if not self.termination_generated:
+            self._termination = self._default_termination_criterion()
 
     def _default_termination_criterion(self):
 
@@ -255,16 +308,9 @@ class PymooOptimizationAlgorithmSingle(PymooOptimizationAlgorithm):
 
         problem = self._generate_pymoo_problem(desvars, constraints, objectives, callback_evaluate, callback_get_current_solution)
 
-        #GENERATING TERMINATION CRITERION BASED ON USER INPUT OR DEFAULT VALUES 
-        
-        if self.termination!=None:
-            termination = self._generate_termination_criterion(self.termination)
-        else:
-            termination = self._default_termination_criterion()
-
         #CONDUCTING PYMOO OPTIMIZATION
             
-        sol = minimize(problem, self._algorithm, termination, seed=1, **self._alg_options)
+        sol = minimize(problem, self._algorithm, self._termination, **self._minimize_ctrl)
 
         self._sol = sol #Tipa pymoo.Result - klasa pymoo-a koja cuva optimalno i izvedivo (ako je dobiveno) rjesenje!
 
