@@ -39,7 +39,7 @@ def opttest1():
     termination = ('n_eval', max_evaluations)
     
     alg_ctrl = {'pop_size': pop_size, 'mutation': mutation,'crossover': crossover, 'termination':termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
-    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_3', alg_ctrl=alg_ctrl)
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_3', 'nsga2', alg_ctrl=alg_ctrl)
     ops.append(op)
     
     #4
@@ -49,7 +49,7 @@ def opttest1():
     termination = ('n_eval', max_evaluations)
 
     alg_ctrl = {'pop_size': pop_size, 'mutation': mutation,'crossover': crossover, 'termination':termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
-    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_4', alg_ctrl=alg_ctrl)
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_4', 'nsga2',alg_ctrl=alg_ctrl)
     ops.append(op)
     
     # 1
@@ -61,7 +61,7 @@ def opttest1():
     selection = {'name':'bts'}
     termination = {'name':'n_eval','max_evaluations':max_evaluations}
     alg_ctrl = {'population_size': pop_size, 'offspring_population_size':pop_size, 'selection':selection, 'mutation': mutation,'crossover': crossover, 'termination':termination}
-    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_1', alg_ctrl=alg_ctrl)
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_1', 'nsga2', alg_ctrl=alg_ctrl)
     ops.append(op)
     
     # 2
@@ -71,7 +71,7 @@ def opttest1():
     selection = {'name':'bts'}
     termination = {'name':'n_eval','max_evaluations':max_evaluations}
     alg_ctrl = {'population_size': pop_size, 'offspring_population_size':pop_size, 'selection':selection, 'mutation': mutation,'crossover': crossover, 'termination':termination}
-    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_2', alg_ctrl=alg_ctrl)
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_2', 'nsga2',alg_ctrl=alg_ctrl)
     ops.append(op)
     
     # 3
@@ -81,7 +81,7 @@ def opttest1():
     selection = {'name':'bts'}
     termination = {'name':'n_eval','max_evaluations':max_evaluations}
     alg_ctrl = {'population_size': pop_size, 'offspring_population_size':pop_size, 'selection':selection, 'mutation': mutation,'crossover': crossover, 'termination':termination}
-    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_3', alg_ctrl=alg_ctrl)
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_3', 'nsga2', alg_ctrl=alg_ctrl)
     ops.append(op)
     
     # 4
@@ -91,7 +91,7 @@ def opttest1():
     selection = {'name':'bts'}
     termination = {'name':'n_eval','max_evaluations':max_evaluations}
     alg_ctrl = {'population_size': pop_size, 'offspring_population_size':pop_size, 'selection':selection, 'mutation': mutation,'crossover': crossover, 'termination':termination}
-    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_3', alg_ctrl=alg_ctrl)
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_4', 'nsga2', alg_ctrl=alg_ctrl)
     ops.append(op)
 
 

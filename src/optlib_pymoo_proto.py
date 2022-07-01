@@ -67,7 +67,7 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a pymoo problem that is suitable for pymoo interface - function minimize. '''
 
-    def __init__(self,name:str, alg_ctrl:Dict=None, minimize_ctrl:Dict = None):
+    def __init__(self,name:str, method, alg_ctrl:Dict=None, minimize_ctrl:Dict = None):
 
         super().__init__(name)
         self._method=method

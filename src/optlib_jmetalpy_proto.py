@@ -116,7 +116,6 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
         self._method=method.lower()
 
 
-        
         mutation = None
         crossover = None
         sampling = None
@@ -249,7 +248,7 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
         elif self._method == 'sa':
             return SimulatedAnnealing(problem=problem, **jmetal_algorithm_options)
 
-     def _generate_crossover(self, item): 
+    def _generate_crossover(self, item):
 
         type_of_crossover:str = item.get('name')
         item.pop('name')
@@ -390,7 +389,7 @@ class jmetalOptimizationAlgorithmMulti(jmetalOptimizationAlgorithm):
 
     def __init__(self,name:str, method:str, alg_ctrl:Dict=None):
 
-        super().__init__(method, name, alg_ctrl)
+        super().__init__(name, method, alg_ctrl)
         
 
     def optimize(self,desvars: List[DesignVariable],
