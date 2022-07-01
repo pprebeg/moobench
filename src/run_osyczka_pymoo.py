@@ -123,7 +123,7 @@ if __name__ == '__main__':
     print(op.get_info())
     
     pairs = []
-    for pair in op._solutions:
+    for pair in op._evaluated_solutions:
         pairs.append(pair.objs.tolist())
     print(pairs)
     pairs = np.array(pairs)

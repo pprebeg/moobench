@@ -22,7 +22,7 @@ class MultibjectiveOptimizationComparer(Job):
 
     def optimize_task(self,op:OptimizationProblem,outfolder:str):
         op.optimize_and_write(outfolder)
-        return op.name + ' - Optimization Finished'
+        return op.full_name + ' - optimization finished - runtime: {} seconds\n'.format(op.opt_output.runtime)
 
     def execute(self):
         dt_string = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")

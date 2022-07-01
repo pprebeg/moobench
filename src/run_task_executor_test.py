@@ -14,84 +14,84 @@ from optlib_jmetalpy_proto import jmetalOptimizationAlgorithmMulti
 
 def opttest1():
     ops:List[OptimizationProblem] = []
-    op = Osyczka2_OptimizationProblem('OSY_pymoo_nsga_ii_1')
+    op = Osyczka2_OptimizationProblem('OSY')
     pop_size = 100
-    num_iter = 100
+    num_iter = 10
     max_evaluations = pop_size * num_iter
     mutation_obj = get_mutation('real_pm', eta=20, prob=1.0 / 6)  # Check
     crossover_obj = get_crossover('real_sbx', eta=20, prob=1.0)  # Check
     alg_ctrl = {'pop_size': pop_size, 'mutation': mutation_obj,
                 'crossover': crossover_obj}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
     term_ctrl = {'n_eval': max_evaluations}  # Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje
-    op.opt_algorithm = PymooOptimizationAlgorithmMulti('nsga2', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_1','nsga2', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)
     ops.append(op)
     #2
-    op = Osyczka2_OptimizationProblem('OSY_pymoo_nsga_ii_2')
+    op = Osyczka2_OptimizationProblem('OSY')
     mutation_obj = get_mutation('real_pm', eta=20, prob=1.0 / 4)  # Check
     crossover_obj = get_crossover('real_sbx', eta=20, prob=0.9)  # Check
     alg_ctrl = {'pop_size': pop_size, 'mutation': mutation_obj,
                 'crossover': crossover_obj}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
     term_ctrl = {'n_eval': max_evaluations}  # Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje
-    op.opt_algorithm = PymooOptimizationAlgorithmMulti('nsga2', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_2','nsga2', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)
     ops.append(op)
     #3
-    op = Osyczka2_OptimizationProblem('OSY_pymoo_nsga_ii_3')
+    op = Osyczka2_OptimizationProblem('OSY')
     mutation_obj = get_mutation('real_pm', eta=20, prob=1.0 / 10)  # Check
     crossover_obj = get_crossover('real_sbx', eta=25, prob=0.95)  # Check
     alg_ctrl = {'pop_size': pop_size, 'mutation': mutation_obj,
                 'crossover': crossover_obj}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
     term_ctrl = {'n_eval': max_evaluations}  # Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje
-    op.opt_algorithm = PymooOptimizationAlgorithmMulti('nsga2', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_3','nsga2', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)
     ops.append(op)
     #4
-    op = Osyczka2_OptimizationProblem('OSY_pymoo_nsga_ii_4')
+    op = Osyczka2_OptimizationProblem('OSY')
     mutation_obj = get_mutation('real_pm', eta=25, prob=1.0 / 6)  # Check
     crossover_obj = get_crossover('real_sbx', eta=25, prob=1.0)  # Check
     alg_ctrl = {'pop_size': pop_size, 'mutation': mutation_obj,
                 'crossover': crossover_obj}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
     term_ctrl = {'n_eval': max_evaluations}  # Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje
-    op.opt_algorithm = PymooOptimizationAlgorithmMulti('nsga2', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_4','nsga2', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)
     ops.append(op)
     # 1
-    op = Osyczka2_OptimizationProblem('OSY_jmetalpy_nsga_ii_1')
+    op = Osyczka2_OptimizationProblem('OSY')
     mutation = PolynomialMutation(probability=1.0 / 6, distribution_index=0.20)
     crossover = SBXCrossover(probability=1.0, distribution_index=0.20)
     selection = BinaryTournamentSelection()
     operators = {'mutation': mutation, 'crossover': crossover, 'selection': selection}
     termination_criterion = StoppingByEvaluations(max_evaluations)
     alg_ctrl = {'population_size': pop_size,'offspring_population_size': pop_size}
-    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('nsga-ii', operators=operators, alg_ctrl=alg_ctrl, termination_criterion=termination_criterion)
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_1','nsga-ii', operators=operators, alg_ctrl=alg_ctrl, termination_criterion=termination_criterion)
     ops.append(op)
     # 2
-    op = Osyczka2_OptimizationProblem('OSY_jmetalpy_nsga_ii_2')
+    op = Osyczka2_OptimizationProblem('OSY')
     mutation = PolynomialMutation(probability=1.0 / 8, distribution_index=0.20)
     crossover = SBXCrossover(probability=0.9, distribution_index=0.20)
     selection = BinaryTournamentSelection()
     operators = {'mutation': mutation, 'crossover': crossover, 'selection': selection}
     termination_criterion = StoppingByEvaluations(max_evaluations)
     alg_ctrl = {'population_size': pop_size,'offspring_population_size': pop_size}
-    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('nsga-ii', operators=operators, alg_ctrl=alg_ctrl,termination_criterion=termination_criterion)
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_2','nsga-ii', operators=operators, alg_ctrl=alg_ctrl,termination_criterion=termination_criterion)
     ops.append(op)
     # 3
-    op = Osyczka2_OptimizationProblem('OSY_jmetalpy_nsga_ii_3')
+    op = Osyczka2_OptimizationProblem('OSY')
     mutation = PolynomialMutation(probability=1.0 / 10, distribution_index=0.20)
     crossover = SBXCrossover(probability=0.95, distribution_index=0.25)
     selection = BinaryTournamentSelection()
     operators = {'mutation': mutation, 'crossover': crossover, 'selection': selection}
     termination_criterion = StoppingByEvaluations(max_evaluations)
     alg_ctrl = {'population_size': pop_size, 'offspring_population_size': pop_size}
-    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('nsga-ii', operators=operators, alg_ctrl=alg_ctrl,
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_3','nsga-ii', operators=operators, alg_ctrl=alg_ctrl,
                                                         termination_criterion=termination_criterion)
     ops.append(op)
     # 4
-    op = Osyczka2_OptimizationProblem('OSY_jmetalpy_nsga_ii_4')
+    op = Osyczka2_OptimizationProblem('OSY')
     mutation = PolynomialMutation(probability=1.0 / 20, distribution_index=0.3)
     crossover = SBXCrossover(probability=0.95, distribution_index=0.22)
     selection = BinaryTournamentSelection()
     operators = {'mutation': mutation, 'crossover': crossover, 'selection': selection}
     termination_criterion = StoppingByEvaluations(max_evaluations)
     alg_ctrl = {'population_size': pop_size, 'offspring_population_size': pop_size}
-    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('nsga-ii', operators=operators, alg_ctrl=alg_ctrl,
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_4','nsga-ii', operators=operators, alg_ctrl=alg_ctrl,
                                                         termination_criterion=termination_criterion)
     ops.append(op)
 

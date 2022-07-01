@@ -106,8 +106,8 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a jmetal problem that is suitable for jmetal interface - function minimize. '''
 
-    def __init__(self, method:str, operators:Dict=None, alg_ctrl:Dict=None, termination_criterion=None):
-
+    def __init__(self,name:str, method:str, operators:Dict=None, alg_ctrl:Dict=None, termination_criterion=None):
+        super().__init__(name)
         self._method=method.lower()
         self._selection = None
         self._crossover = None
@@ -287,9 +287,9 @@ class jmetalOptimizationAlgorithmMulti(jmetalOptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a jmetal problem that is suitable for jmetal interface - function minimize. '''
 
-    def __init__(self, method:str, operators:Dict=None, alg_ctrl:Dict=None, termination_criterion=None):
+    def __init__(self,name:str, method:str, operators:Dict=None, alg_ctrl:Dict=None, termination_criterion=None):
 
-        super().__init__(method, operators, alg_ctrl, termination_criterion)
+        super().__init__(name,method, operators, alg_ctrl, termination_criterion)
         
 
     def optimize(self,desvars: List[DesignVariable],
@@ -354,9 +354,9 @@ class jmetalOptimizationAlgorithmSingle(jmetalOptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a jmetal problem that is suitable for jmetal interface - function minimize. '''
 
-    def __init__(self, method:str, operators:Dict=None, alg_ctrl:Dict=None, termination_criterion=None):
+    def __init__(self,name:str, method:str, operators:Dict=None, alg_ctrl:Dict=None, termination_criterion=None):
 
-        super().__init__(method, operators, alg_ctrl, termination_criterion)
+        super().__init__(name,method, operators, alg_ctrl, termination_criterion)
 
     def optimize(self,desvars: List[DesignVariable],
                  constraints: List[DesignConstraint],

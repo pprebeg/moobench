@@ -123,14 +123,14 @@ if __name__ == '__main__':
     print(op.get_info())
 
     pairs = []
-    for pair in op._solutions:
+    for pair in op._evaluated_solutions:
         pairs.append(pair.objs.tolist())
     print(pairs)
     pairs = np.array(pairs)
     plot = get_visualization("scatter")
     plot.add(pairs, color="green", marker="x")
 
-    op._solutions.clear()
+    op._evaluated_solutions.clear()
 
     mutation_obj = get_mutation('real_pm', eta=20, prob=1.0/6)   
     crossover_obj = get_crossover('real_sbx', eta=20, prob=1.0)    
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     print(op.get_info())
 
     pairs = []
-    for pair in op._solutions:
+    for pair in op._evaluated_solutions:
         pairs.append(pair.objs.tolist())
     print(pairs)
     pairs = np.array(pairs)

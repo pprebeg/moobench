@@ -67,8 +67,8 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a pymoo problem that is suitable for pymoo interface - function minimize. '''
 
-    def __init__(self,method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
-
+    def __init__(self,name:str,method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
+        super().__init__(name)
         self._method=method
         self._alg_options=alg_ctrl
         self._term_ctrl=term_ctrl
@@ -171,8 +171,8 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
 class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
 
-    def __init__(self, method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
-        super().__init__(method,alg_ctrl,term_ctrl)
+    def __init__(self,name:str, method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
+        super().__init__(name,method,alg_ctrl,term_ctrl)
 
 
     def _default_termination_criterion(self):
@@ -229,8 +229,8 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
 
 class PymooOptimizationAlgorithmSingle(PymooOptimizationAlgorithm):
 
-    def __init__(self, method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
-        super().__init__(method, alg_ctrl, term_ctrl)
+    def __init__(self,name:str, method:str,alg_ctrl:Dict=None,term_ctrl:Dict=None):
+        super().__init__(name,method, alg_ctrl, term_ctrl)
 
     def _default_termination_criterion(self):
 
