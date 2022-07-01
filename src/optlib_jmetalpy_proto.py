@@ -109,9 +109,13 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a jmetal problem that is suitable for jmetal interface - function minimize. '''
 
-    def __init__(self, method:str, alg_ctrl:Dict=None):
+    def __init__(self, name:str, method:str, alg_ctrl:Dict=None):
+
+        super().__init__(name)
 
         self._method=method.lower()
+
+
         
         mutation = None
         crossover = None
@@ -137,10 +141,12 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
             sampling_obj = self._generate_sampling(sampling)
             self._alg_options['sampling'] = sampling_obj
 
+
         if selection != None:
             alg_ctrl.pop('selection')
             selection_obj = self._generate_selection(selection)
             self._alg_options['selection'] = selection_obj
+
 
         if crossover != None:
             alg_ctrl.pop('crossover')
@@ -159,12 +165,9 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
             self._alg_options['termination_criterion'] = self._termination           
             
 
-        #self._create_termination_criterion()
 
         self._alg_options.update(alg_ctrl)
              
-
-
 
 
     @property
@@ -223,9 +226,11 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
             return NSGAIII(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'spea2':
+
             return SPEA2(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'omopso':
+            returnOMOPSO(**jmetal_algorithm_options)
             return OMOPSO(problem=problem, **jmetal_algorithm_options)
 
         elif self._method == 'smpso':
@@ -244,7 +249,7 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
         elif self._method == 'sa':
             return SimulatedAnnealing(problem=problem, **jmetal_algorithm_options)
 
-    def _generate_crossover(self, item): 
+     def _generate_crossover(self, item): 
 
         type_of_crossover:str = item.get('name')
         item.pop('name')
@@ -383,9 +388,9 @@ class jmetalOptimizationAlgorithmMulti(jmetalOptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a jmetal problem that is suitable for jmetal interface - function minimize. '''
 
-    def __init__(self, method:str, alg_ctrl:Dict=None):
+    def __init__(self,name:str, method:str, alg_ctrl:Dict=None):
 
-        super().__init__(method, alg_ctrl)
+        super().__init__(method, name, alg_ctrl)
         
 
     def optimize(self,desvars: List[DesignVariable],
@@ -425,9 +430,9 @@ class jmetalOptimizationAlgorithmSingle(jmetalOptimizationAlgorithm):
 
     '''Most important class of this interface. It takes settings as input, and creates a jmetal problem that is suitable for jmetal interface - function minimize. '''
 
-    def __init__(self, method:str, alg_ctrl:Dict=None):
+    def __init__(self,name:str, method:str, alg_ctrl:Dict=None):
 
-        super().__init__(method, alg_ctrl)
+        super().__init__(name, method, alg_ctrl)
 
     def optimize(self,desvars: List[DesignVariable],
                  constraints: List[DesignConstraint],
@@ -443,7 +448,9 @@ class jmetalOptimizationAlgorithmSingle(jmetalOptimizationAlgorithm):
             print('Problem is not defined!')
             raise
         
+
         self._algorithm = self._instantiate_jmetal_algorithm_object(problem, self._alg_options)
+
 
         self._algorithm.run()
 
