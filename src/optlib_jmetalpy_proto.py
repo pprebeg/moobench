@@ -36,6 +36,9 @@ from jmetal.util.termination_criterion import StoppingByEvaluations, StoppingByT
 
 
 class jmetalConstraint():
+
+    '''This class normalizes the constraints embody'''
+    
     def __init__(self, con:DesignConstraint):    #tu bi se trebalo kod constrainta koristiti ono kaj je moja ideja bila na seminarskom.. con mora biti funkcija
         self._criteria:DesignConstraint=con
 
@@ -44,7 +47,10 @@ class jmetalConstraint():
         return self._criteria
 
     def get_con_value(self) ->float:
-        return self.con.value_gt_0          #slicno kao u scipy-ju! expression treba biti >=0, ako je <0, smatra se violation-om.
+        return self.con.value_gt_0         #slicno kao u scipy-ju! expression treba biti >=0, ako je <0, smatra se violation-om - to se vidi u jmetal.util.constraint_handling
+
+    def get_con_value_normalized(self) ->float:
+        return self.con.value_gt_0/self.con.rhs         #slicno kao u scipy-ju! expression treba biti >=0, ako je <0, smatra se violation-om - to se vidi u jmetal.util.constraint_handling/self.con.rhs 
 
 class WrappedjmetalProblem(FloatProblem):
 
@@ -71,7 +77,7 @@ class WrappedjmetalProblem(FloatProblem):
         #SPREMANJE LISTA OBJEKATA tipa DesignVariable, DesignObjective, jmetalConstraint
 
         self._desvars = desvars
-        self._cons = cons
+        self._cons:jmetalConstraint = cons
         self._objs = objs
 
 
@@ -86,17 +92,17 @@ class WrappedjmetalProblem(FloatProblem):
         curr_solution=self._callback_get_current_solution() # u ovaj solution se naime spremaju u
 
         objectives=[]            #faster way to initialize a list arr = [0]*1000 ako postoji nacin overwrite vrijednosti?
-        constraints=[] # je li dobro ovo ovako prebrisivat svaki put?
+        constraints=[]              # je li dobro ovo ovako prebrisivat svaki put?
 
         for i in range(self.number_of_objectives):
             objectives.append(curr_solution.get_obj_value(i))
 
         for i in range(self.number_of_constraints):
-            constraints.append(self._cons[i].get_con_value())
+            constraints.append(self._cons[i].get_con_value_normalized())    #Zasad je implementirano samo ovo normalizirano vracanje vrijednosti! Sve ostalo bi dosta usporavalo! 
 
         solution.objectives = objectives
 
-        solution.constraints = constraints #izgleda da constraints trebaju biti oblika >=0
+        solution.constraints = constraints #constraints trebaju biti oblika >=0
 
         return solution
 

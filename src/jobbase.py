@@ -28,8 +28,8 @@ class MultibjectiveOptimizationComparer(Job):
         dt_string = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
         print(dt_string+' - Job started')
         with ProcessPoolExecutor(max_workers= self._max_workers) as executor:
-            outfolder='D:\\Development\moobench\\out'
-            outfolder=dirname(dirname(__file__))+'\\out'
+            outfolder='D:\\Documents\\Diplomski\\moobench\\out_4_7'
+            #outfolder=dirname(dirname(__file__))+'\\out'
             futures:List[Future] = []
             for op in self._ops:
                 futures.append(executor.submit(self.optimize_task,op,outfolder))

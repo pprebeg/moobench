@@ -109,13 +109,12 @@ if __name__ == '__main__':
     num_iter = 100
     max_evaluations = pop_size*num_iter
 
-    mutation_obj = get_mutation('real_pm', eta=20, prob=1.0/6)    # Check
-    crossover_obj = get_crossover('real_sbx', eta=20, prob=1.0)     #Check
-##    selection_obj = get_selection('tournament',{'func_comp' : binary_tournament}) Selection je random Selection je odabir za rekombinaciju 
-    
-    alg_ctrl={'pop_size':pop_size,'mutation':mutation_obj, 'crossover':crossover_obj}       #u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
-    term_ctrl={'n_eval':max_evaluations}                                                       #Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje
-    op.opt_algorithm = PymooOptimizationAlgorithmMulti('nsga2', alg_ctrl=alg_ctrl, term_ctrl=term_ctrl)        #prvi argument string naziva algoritma, ostatak u obliku dictionary-ja ili tuple-a.
+    mutation_obj = {'name':'real_pm', 'eta':20, 'prob':0.5}   # Check
+    crossover_obj = {'name':'real_sbx', 'eta':20, 'prob':1.0}     #Check
+    term_ctrl=('n_eval',max_evaluations)    
+    alg_ctrl={'pop_size':pop_size,'mutation':mutation_obj, 'crossover':crossover_obj, 'termination':term_ctrl}       #u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+                                                       #Ovo treba biti u obliku liste. Primjer je dan kako se u obliku liste šalje
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('','nsga2', alg_ctrl=alg_ctrl)        #prvi argument string naziva algoritma, ostatak u obliku dictionary-ja ili tuple-a.
     #op.termination(n_gen=40)PymooTermination # Od termination criteria imamo sljedci izbor
 
     res = op.optimize([])

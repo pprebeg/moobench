@@ -20,7 +20,10 @@ class PymooConstraint():
         return self._criteria
 
     def get_con_value(self) ->float: 
-        return self.con.value_lt_0 
+        return self.con.value_lt_0
+
+    def get_con_value_normalized(self) ->float: 
+        return self.con.value_lt_0/self.con.rhs
 
 class WrappedPymooProblem(ElementwiseProblem):
 
@@ -272,6 +275,7 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
         #FINAL EVALUATION OF OPTIMAL SOLUTION TO BE STORED AS OptimizationProblemSolution
         
         x = sol.X
+        print(x)
             
         solutions:List[OptimizationProblemSolution] = []
         
@@ -279,7 +283,7 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
             out={}
             out['F'] = sol.F[index]
             out['G'] = sol.G[index]
-
+            print(x_individual)
             problem._evaluate(x_individual,out)     #ovo sprema OptimizationProblemSolution u OptimizationProblem
             opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku. ili izraditi copy objekta - funckionalnost na razini pymoo_proto.. ili u optbase prosiriti poziv ovog optimize-a sa jos jednim callbackom koji bi pozivao add_
             solutions.append(deepcopy(opt_sol))   #append adds a reference only! in solutions, there are just pointers to opt_sol! it should actually make copies that are independent one of another, so that it doesn't change when opt_sol change                
