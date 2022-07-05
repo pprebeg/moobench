@@ -570,10 +570,10 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
                 self._opt_output = MultiobjectiveOptimizationOutput(self.opt_algorithm.name,self.name,dt,ne,sols)
             else:
                 self._opt_output = SingleobjectiveOptimizationOutput(self.opt_algorithm.name,self.name, dt,ne, sols[-1])
-            self.calcualte_quality_measures()
+            self.calculate_quality_measures()
             return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a...
 
-    def calcualte_quality_measures(self):
+    def calculate_quality_measures(self):
         oo = self._opt_output
         if isinstance(oo,MultiobjectiveOptimizationOutput):
             # add all quality measures here
