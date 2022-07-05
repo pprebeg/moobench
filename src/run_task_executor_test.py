@@ -119,6 +119,23 @@ def opttest_osy(max_number_of_workers:int=2):
     job = MultibjectiveOptimizationComparer('test', ops, max_number_of_workers)
     job.execute()
 
+def opttest_one_osy(max_number_of_workers:int=2):
+    ops: List[OptimizationProblem] = []
+    pop_size = 200
+    num_iter = 200
+    max_evaluations = pop_size * num_iter
+    #1
+    op = Osyczka2_OptimizationProblem('OSY')
+    mutation = {'name':'real_pm', 'eta':20, 'prob': 0.5}  # Check
+    crossover = {'name':'real_sbx', 'eta':20, 'prob':0.8}  # Check
+    termination = ('n_eval', max_evaluations)
+    alg_ctrl = {'pop_size': pop_size, 'n_offsprings': 10, 'mutation': mutation, 'crossover': crossover,
+                'termination': termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_one_osy', 'nsga2', alg_ctrl=alg_ctrl)
+    ops.append(op)
+    job = MultibjectiveOptimizationComparer('test', ops, max_number_of_workers)
+    job.execute()
+
 def opttest_scipy(max_number_of_workers:int=2):
     ops:List[OptimizationProblem] = []
     op = ('EX_16_4_COBYLA')
@@ -138,4 +155,6 @@ if __name__ == '__main__':
     max_number_of_workers = 4
     #opttest_ref_front(max_number_of_workers)
     #opttest_scipy(max_number_of_workers)
-    opttest_osy(max_number_of_workers)
+    #opttest_osy(max_number_of_workers)
+    opttest_one_osy(max_number_of_workers)
+

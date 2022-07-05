@@ -3,7 +3,7 @@ import numpy as np
 from enum import Enum
 from typing import List, Dict,TypeVar
 from copy import copy, deepcopy
-from utils import writecsv_listofstrings,readcsv_listofstrings,writecsv_dictionary
+from utils import writecsv_listofstrings,readcsv_listofstrings,writecsv_dictionary,save_pareto_plot
 import time
 from datetime import datetime
 class ConstrType(Enum): #Enumaratori za kontrolu tijeka programa
@@ -308,57 +308,106 @@ class OptimizationProblemSolution():
         self._dvs = np.zeros(num_var)
         self._objs = np.zeros(num_obj)
         self._cons = np.zeros(num_constr)
+        self._num_var = num_var
+        self._num_obj = num_obj
+        self._num_con = num_constr
+        self._values = np.zeros(self.num_opt_components)
 
     @property
-    def dvs(self):              #design variable solutions
-        return self._dvs
+    def num_var(self):
+        return self._num_var
+    @property
+    def num_obj(self):
+        return self._num_obj
+    @property
+    def num_con(self):
+        return self._num_con
+    @property
+    def num_opt_components(self):
+        return self._num_var + self._num_obj + self._num_con
+
+    def get_var_ix(self, idv):
+        return idv
+
+    def get_obj_ix(self, iobj):
+        return self._num_var+iobj
+
+    def get_con_ix(self, icon):
+        return self._num_var+self._num_obj+icon
+
+
 
     @property
     def objs(self):             #objective function solutions
-        return self._objs
+        return self._values[self._num_var:self._num_var+self._num_obj]
 
-    @property
-    def cons(self):             #constraints
-        return self._cons
 
-    def get_variable_value(self,ix:int):
-        return self._dvs[ix]    #vracanje vrijednosti odredjene design variable - indeks iz konektora vjerojatno ekstrahiramo.. pa proslijedimo ovom array-u? Mogu li se pobrkati ako nisu redom indeksi? 
+    def get_obj_value(self,iobj:int):
+        return self._values[self.get_obj_ix(iobj)]
     
-    def set_variable_value(self,ix:int,value):
-        self._dvs[ix] = value                   #ovo bi smjela jedino metoda koja vrši proracun pozivati, kaj ne? 
+    def set_variable_value(self, idv: int, value):
+        self._values[self.get_var_ix(idv)] = value  # ovo bi smjela jedino metoda koja vrši proracun pozivati, kaj ne?
 
-    def get_obj_value(self,ix:int):
-        return self._objs[ix]
-    
-    def set_obj_value(self,ix:int,value):
-        self._objs[ix] = value
+    def set_obj_value(self, iobj: int, value):
+        self._values[self.get_obj_ix(iobj)] = value
 
-    def get_con_value(self,ix:int):
-        return self._cons[ix]
-    
-    def set_con_value(self,ix:int,value):
-        self._cons[ix] = value
+    def set_con_value(self, icon: int, value):
+        self._values[self.get_con_ix(icon)] = value
 
-    def set_criteria_to_nan(self):          #IEEE 754 floating point reprezentacija matematickog pojma NAN - neodredjeno 0/0 npr.
-        self._objs[:] = np.nan
-        self._cons[:] = np.nan
+    def set_criteria_to_nan(self):
+        self._values[self._num_var:self.num_opt_components] = np.nan
 
     def write_to_csvline(self):
-        ar:List[str] = (np.char.mod('%f', self._dvs)).tolist()
-        aro:List[str] = (np.char.mod('%f', self._objs)).tolist()
-        arc:List[str] = (np.char.mod('%f', self._cons)).tolist()
-        ar.extend(aro)
-        ar.extend(arc)
+        ar:List[str] = (np.char.mod('%f', self._values)).tolist()
         line = ",".join(ar)
         return line
 
     def read_from_csvline(self,line:str):
-        ar = np.fromstring(line, dtype=float, sep=',')
-        nv=self._dvs.count()
-        nvo=nv+self._objs.count()
-        self._dvs = ar[0:nv]
-        self._objs = ar[nv:nvo]
-        self._cons = ar[nvo:ar.count()]
+        self._values = np.fromstring(line, dtype=float, sep=',')
+
+
+class OptimizationProblemMultipleSolutions(OptimizationProblemSolution):
+    '''Class for holding optimization solutions - values of design variables, objective functions and constraints. Storing is envoked in Optimization Problem class. '''
+
+    def __init__(self, num_var, num_obj, num_constr,num_solutions):
+        super().__init__(num_var,num_obj,num_constr)
+        self._num_sol = num_solutions
+        self._values = np.zeros((self._num_sol,self.num_opt_components))
+
+    @property
+    def num_sol(self):
+        return self._num_sol
+
+    def get_ndarray_all_solutions_for_objective(self,iobj:int)->np.ndarray:
+            return self._values[:,self.get_obj_ix(iobj)]
+
+    def set_one_solution(self,isol:int,solution:OptimizationProblemSolution):
+        self._values[isol,:] = solution._values[:]
+
+    def set_variable_value(self, isol: int, idv: int, value):
+        self._values[isol,self.get_var_ix(idv)] = value  # ovo bi smjela jedino metoda koja vrši proracun pozivati, kaj ne?
+
+    def set_obj_value(self, isol: int, iobj: int, value):
+        self._values[isol,self.get_obj_ix(iobj)] = value
+
+    def set_con_value(self, isol: int, icon: int, value):
+        self._values[isol,self.get_con_ix(icon)] = value
+
+    def set_criteria_to_nan(self,isol:int):
+        self._values[isol,self._num_var:self.num_opt_components] = np.nan
+
+    def write_to_csvline(self)->List[str]:
+        multiline = []
+        for i in range(self._num_sol-1):
+            ar: List[str] = (np.char.mod('%f', self._values[i,:])).tolist()
+            multiline.append(",".join(ar)+'\n')
+        ar: List[str] = (np.char.mod('%f', self._values[self._num_sol-1,:])).tolist()
+        multiline.append(",".join(ar))
+        return multiline
+
+    def read_from_csvline(self, multiline: str):
+        self._values = np.fromstring(multiline, dtype=float, sep=',')
+        self._values.reshape(self.num_sol,self.num_opt_components)
 
 class OptimizationAlgorithm(ABC): #doslovce klasa koja samo sluzi tome da bude nacrt tome kako ce ScipyOptimizationAlgorithm izgledati... 
     def __init__(self,name:str):
@@ -390,6 +439,16 @@ class OptimizationOutput(ABC):
         self._opt_problem_name: str = opt_problem_name
         self._num_evaluations = num_evaluations
         pass
+
+    @property
+    def num_var(self):
+        return 0
+    @property
+    def num_obj(self):
+        return 0
+    @property
+    def num_con(self):
+        return 0
 
     @property
     def creation_date_time(self):
@@ -456,11 +515,20 @@ class SingleobjectiveOptimizationOutput(OptimizationOutput):
 
     def save_output(self, file_path,fieldnames):
         pass
+    @property
+    def num_var(self):
+        return self._solution.num_var
+    @property
+    def num_obj(self):
+        return self._solution.num_obj
+    @property
+    def num_con(self):
+        return self._solution.num_con
 
 class MultiobjectiveOptimizationOutput(OptimizationOutput):
-    def __init__(self,opt_alg_name:str,opt_problem_name:str,runtime:float,num_evaluations:int,solutions:List[OptimizationProblemSolution]):
+    def __init__(self,opt_alg_name:str,opt_problem_name:str,runtime:float,num_evaluations:int,solutions:OptimizationProblemMultipleSolutions):
         super().__init__(opt_alg_name,opt_problem_name,runtime,num_evaluations)
-        self._solutions: List[OptimizationProblemSolution] = solutions
+        self._solutions: OptimizationProblemMultipleSolutions = solutions
         self._quality_measures:Dict[str,float] = {}
 
     def clear_quality_measures(self):
@@ -475,7 +543,7 @@ class MultiobjectiveOptimizationOutput(OptimizationOutput):
 
     @property
     def num_sol(self):
-        return len(self._solutions)
+        return self._solutions.num_sol
     @classmethod
     def factory_from_out_file(cls:type[OO], out_file_path):
         opt_alg_name:str= ''
@@ -486,10 +554,13 @@ class MultiobjectiveOptimizationOutput(OptimizationOutput):
         return new_instance,fieldnames_tocheck
 
     def get_solutions_string_list(self) -> List[str]:
-        sslist = []
-        for sol in self._solutions:
-            sslist.append(sol.write_to_csvline()+'\n')
-        return sslist
+        return self._solutions.write_to_csvline()
+
+    def save_pareto_plot(self, path, obj_1_name, obj_2_name):
+        xdata = self.solutions.get_ndarray_all_solutions_for_objective(0)
+        ydata = self.solutions.get_ndarray_all_solutions_for_objective(1)
+        save_pareto_plot(path,self.full_name,xdata,ydata,obj_1_name,obj_2_name)
+
     def save_output(self, folder_path,fieldnames):
         file_path= folder_path+'\\'+self.full_name
         sols_file_path = file_path+'_s.csv'
@@ -508,6 +579,15 @@ class MultiobjectiveOptimizationOutput(OptimizationOutput):
         msg  = super().get_info()
         msg  +=  '\nnum solutions: '+ str(self.num_sol)
         return msg
+    @property
+    def num_var(self):
+        return self._solutions.num_var
+    @property
+    def num_obj(self):
+        return self._solutions.num_obj
+    @property
+    def num_con(self):
+        return self._solutions.num_con
 
 class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je vecina funkcionalnosti implementirana
     def __init__(self,name='Optimization problem name'):
@@ -566,8 +646,12 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             tEnd = time.perf_counter()
             dt = tEnd - tStart
             ne= self._evalcount
+
             if self.is_multiobjective:
-                self._opt_output = MultiobjectiveOptimizationOutput(self.opt_algorithm.name,self.name,dt,ne,sols)
+                mosols = OptimizationProblemMultipleSolutions(sols[0].num_var,sols[0].num_obj,sols[0].num_con,len(sols))
+                for i in range(len(sols)):
+                    mosols.set_one_solution(i,sols[i])
+                self._opt_output = MultiobjectiveOptimizationOutput(self.opt_algorithm.name,self.name,dt,ne,mosols)
             else:
                 self._opt_output = SingleobjectiveOptimizationOutput(self.opt_algorithm.name,self.name, dt,ne, sols[-1])
             self.calcualte_quality_measures()
@@ -588,6 +672,12 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         print(dt_string + " " + self.full_name + " optimization ended")
         path = folder_path
         self.write_output(path)
+        self.save_pareto_plot(path)
+
+    def save_pareto_plot(self,path):
+        out = self._opt_output
+        if self.num_obj == 2 and isinstance(out,MultiobjectiveOptimizationOutput):
+            out.save_pareto_plot(path,self._objectives[0].name, self._objectives[1].name)
 
     def write_output(self, path):
         fieldnames = self.get_dvobjcon_names_line()
@@ -709,13 +799,13 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
 
     def _set_ndarray_connector_to_components(self): #vrlo vazna metoda, u tri propertyja - num_var, num_obj i num_con spremljeni su broj potrebnih kreiranja poveznica putem konektora
         for i in range(self.num_var):
-            cnct = NdArrayGetSetConnector(self._cur_sol.dvs,i)  #kreira objekt, šalje mu iz sadašnjeg rješenja pojedinu dizajn varijablu i indeks.. indeksom redom prolazimo kroz _desvars listu varijabli.. 
+            cnct = NdArrayGetSetConnector(self._cur_sol._values,self._cur_sol.get_var_ix(i))  #kreira objekt, šalje mu iz sadašnjeg rješenja pojedinu dizajn varijablu i indeks.. indeksom redom prolazimo kroz _desvars listu varijabli..
             self._desvars[i].set_ndarray_connector(cnct) #za pojedinu dizajnersku varijablu u listi, postavlja konektor cnct. 
         for i in range(self.num_obj):
-            cnct = NdArrayGetSetConnector(self._cur_sol.objs, i)
+            cnct = NdArrayGetSetConnector(self._cur_sol._values, self._cur_sol.get_obj_ix(i))
             self._objectives[i].set_ndarray_connector(cnct)
         for i in range(self.num_con):
-            cnct = NdArrayGetSetConnector(self._cur_sol.cons, i)
+            cnct = NdArrayGetSetConnector(self._cur_sol._values, self._cur_sol.get_con_ix(i))
             self._constraints[i].set_ndarray_connector(cnct)
 
     def add_to_solutions(self,sol):

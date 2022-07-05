@@ -1,5 +1,8 @@
 import csv
 from typing import List,Dict
+import matplotlib.pyplot as plt
+import numpy as np
+import os
 
 def writecsv_listofdicts(filepath:str,listofdicts:List[Dict]):
     with open(filepath, 'w', newline='') as csvfile:
@@ -36,3 +39,15 @@ def readcsv_listofstrings(filepath:str):
         for row in reader:
             listofstrings.append(str(row))
     return listofstrings
+
+def save_pareto_plot(folder_path:str,title:str,x:np.ndarray,y:np.ndarray,x_name:str, y_name:str):
+    fig = plt.figure()
+    ax = plt.gca()
+    ax.plot(x, y, '.b')
+    ax.set_title('Pareto front: '+title+', {} designs'.format(x.size))
+    ax.set_ylabel(x_name, loc='center')
+    ax.set_xlabel(y_name, loc='center')
+    #plt.legend(loc='upper left')
+    ax.grid(True)
+    plt.savefig(os.path.join(folder_path,title + "_pf.png"), bbox_inches="tight")
+    plt.close(fig)
