@@ -1,9 +1,9 @@
 from abc import ABC,abstractmethod
 import numpy as np
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict,TypeVar
 from copy import copy, deepcopy
-from utils import writecsv_listofstrings,readcsv_listofstrings
+from utils import writecsv_listofstrings,readcsv_listofstrings,writecsv_dictionary
 import time
 from datetime import datetime
 class ConstrType(Enum): #Enumaratori za kontrolu tijeka programa
@@ -361,8 +361,13 @@ class OptimizationProblemSolution():
         self._cons = ar[nvo:ar.count()]
 
 class OptimizationAlgorithm(ABC): #doslovce klasa koja samo sluzi tome da bude nacrt tome kako ce ScipyOptimizationAlgorithm izgledati... 
-    def __init__(self,opt_ctrl):
+    def __init__(self,name:str):
+        self._name =name
         pass
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     @abstractmethod
@@ -376,6 +381,134 @@ class OptimizationAlgorithm(ABC): #doslovce klasa koja samo sluzi tome da bude n
                  x0:np.ndarray,Callback_evaluate,Callback_get_curren_solution)->List[OptimizationProblemSolution]:
         pass
 
+OO = TypeVar('OO', bound='OptimizationOutput')
+class OptimizationOutput(ABC):
+    def __init__(self,opt_alg_name:str,opt_problem_name:str,runtime:float,num_evaluations:int):
+        self._creation_date_time:str = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
+        self._runtime:float = runtime
+        self._opt_alg_name:str=opt_alg_name
+        self._opt_problem_name: str = opt_problem_name
+        self._num_evaluations = num_evaluations
+        pass
+
+    @property
+    def creation_date_time(self):
+        return self._creation_date_time
+
+    @property
+    def runtime(self):
+        return self._runtime
+    @property
+    def num_evaluations(self):
+        return self._num_evaluations
+    @property
+    def opt_problem_name(self):
+        return self._opt_problem_name
+
+    @property
+    def opt_alg_name(self):
+        return self._opt_alg_name
+
+    @property
+    def full_name(self):
+        return self.opt_problem_name+'_'+self.opt_alg_name
+
+    @abstractmethod
+    def get_solutions_string_list(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def save_output(self,file_path,fieldnames):
+        pass
+
+    @classmethod
+    def factory_from_out_file(out_file_path):
+        pass
+
+    def get_basic_data_dict(self)->Dict[str,str]:
+        dd:Dict[str,str] = {}
+        dd['opt_alg_name']=self.opt_alg_name
+        dd['opt_problem_name'] = self.opt_problem_name
+        dd['runtime'] = str(self.runtime)
+        dd['num_evaluations'] = str(self.num_evaluations)
+        dd['creation_date_time'] = self.creation_date_time
+        return dd
+
+    def get_info(self)->str:
+        msg  =  'name: '+ self.full_name+'\n'
+        msg +=  'date and time: '+ self.creation_date_time+'\n'
+        msg +=  'runtime: '+ str(self.runtime)+'\n'
+        msg +=  'num_evaluations: '+ str(self.num_evaluations)
+
+        return msg
+
+class SingleobjectiveOptimizationOutput(OptimizationOutput):
+    def __init__(self,opt_alg_name:str,opt_problem_name:str,runtime:float,num_evaluations:int,solution:OptimizationProblemSolution):
+        super().__init__(opt_alg_name,opt_problem_name,runtime,num_evaluations)
+        self._solution: OptimizationProblemSolution = solution
+
+    @classmethod
+    def factory_from_out_file(cls, out_file_path):
+        print('ERROR method not implemented!')
+
+    def get_solutions_string_list(self) -> List[str]:
+        return [self._solution.write_to_csvline() + '\n']
+
+    def save_output(self, file_path,fieldnames):
+        pass
+
+class MultiobjectiveOptimizationOutput(OptimizationOutput):
+    def __init__(self,opt_alg_name:str,opt_problem_name:str,runtime:float,num_evaluations:int,solutions:List[OptimizationProblemSolution]):
+        super().__init__(opt_alg_name,opt_problem_name,runtime,num_evaluations)
+        self._solutions: List[OptimizationProblemSolution] = solutions
+        self._quality_measures:Dict[str,float] = {}
+
+    def clear_quality_measures(self):
+        self._quality_measures.clear()
+
+    def add_quality_measure(self,key:str,value:float):
+        self._quality_measures[key] =value
+
+    @property
+    def solutions(self):
+        return self._solutions
+
+    @property
+    def num_sol(self):
+        return len(self._solutions)
+    @classmethod
+    def factory_from_out_file(cls:type[OO], out_file_path):
+        opt_alg_name:str= ''
+        runtime:float = 0.0
+        solutions: List[OptimizationProblemSolution] = []
+        new_instance = cls(opt_alg_name,runtime,solutions)
+        fieldnames_tocheck = ''
+        return new_instance,fieldnames_tocheck
+
+    def get_solutions_string_list(self) -> List[str]:
+        sslist = []
+        for sol in self._solutions:
+            sslist.append(sol.write_to_csvline()+'\n')
+        return sslist
+    def save_output(self, folder_path,fieldnames):
+        file_path= folder_path+'\\'+self.full_name
+        sols_file_path = file_path+'_s.csv'
+        file_path+='.csv'
+        sol_lines = self.get_solutions_string_list()
+        writecsv_listofstrings(sols_file_path, fieldnames, sol_lines)
+        dd = self.get_basic_data_dict()
+        dd['num_sol'] = self.num_sol
+        dd.update(self._quality_measures)
+        dd['sols_file_path'] = sols_file_path
+        writecsv_dictionary(file_path,dd)
+
+    def append_output_data_dictionary(self,output_data:Dict[str,str]):
+        pass
+    def get_info(self)->str:
+        msg  = super().get_info()
+        msg  +=  '\nnum solutions: '+ str(self.num_sol)
+        return msg
+
 class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je vecina funkcionalnosti implementirana
     def __init__(self,name='Optimization problem name'):
         self._name = name
@@ -384,11 +517,29 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         self._constraints: List[DesignConstraint] = []
         self._objectives: List[DesignObjective] = []
         self._cur_sol:OptimizationProblemSolution = None
-        self._solutions:List[OptimizationProblemSolution]= []
+        self._evaluated_solutions:List[OptimizationProblemSolution]= []
+        self._save_all_evaluated_solutions = False # set to True when  doing optimization of computationaly expensive functions
+        self._opt_output:OptimizationOutput = None
         self._analysis_executors:List[AnalysisExecutor]=[]  
         self._use_ndarray_connectors = False            #ovo se nigdje ne dodjeljuje na True u simpleopt testu ni ovdje, a opet dohvaćanje vrijednosti i dalje radi.. I, radi dobro. Potvrdjeno. 
-        self.opt_algorithm:OptimizationAlgorithm = None #dodjeljuje se kroz korisnicki program op.opt_algorithm = ... u primjeru - ScipyOptimizationAlgorithm
+        self._opt_algorithm:OptimizationAlgorithm = None #dodjeljuje se kroz korisnicki program op.opt_algorithm = ... u primjeru - ScipyOptimizationAlgorithm
+        self._evalcount = 0
         pass
+    @property
+    def opt_output(self):
+        return self._opt_output
+    @property
+    def is_multiobjective(self):
+        if len(self._objectives) > 1:
+            return True
+        return False
+
+    @property
+    def full_name(self):
+        if self._opt_algorithm is None:
+            return self.name+ '_Unassigned_opt_algorithm'
+        else:
+            return self.name + '_'+self._opt_algorithm.name
 
     @property
     def description(self):
@@ -404,30 +555,56 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
     #implemented methods
     def optimize(self,x0= None):
         if self.opt_algorithm is not None: # u scipy primjeru to je spremljen objekt tipa ScipyOptimizationAlgorithm 
+            self._evalcount = 0
             self._init_opt_problem() #ako je defaultno da se ne koriste, onda se instancira objekt tipa OptimizationProblem prilikom kojeg se tri arraya inicijaliziraju s nulama, dizajnerske varijable, ciljevi i ogranicenja
             if x0 is None:           #defaultno je None.. ako se pozove op.optimize().. no obicno se prilikom poziva OptimizationAlgorithm.optimize() u zagradama definiraju pocetne vrijednosti dizajnerskih varijabli.. 
                 x0 = self.get_initial_design() #vraca pocetne x-eve na jedan od dva nacina.. A to je automatsko random kreiranje
-            sols = self.opt_algorithm.optimize(self._desvars, #tu se zapravo poziva u ovom pocetnom slucaju (koji sam dobio od profesora) ScipyOptimizaionAlgorithm.. 
+            tStart = time.perf_counter()  # početak mjerenja vremena
+            sols = self.opt_algorithm.optimize(self._desvars, #tu se zapravo poziva u ovom pocetnom slucaju (koji sam dobio od profesora) ScipyOptimizaionAlgorithm..
                  self._constraints,self._objectives, x0,        #self._desvars, self._constraints itd. - dodijeljene su preko metoda, preko korisnickih programa.. s onim add_constraint, add_design_variable.. itd. 
                  self.evaluate,self.get_current_sol)            #to su vlastite funkcije ove klase!!!!
-            self._solutions.extend(sols) #extend metoda samo jednostavno spaja dvije liste ili dva iterabla u jedan. To je lista OptimizationProblemSolution
-            return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a... 
+            tEnd = time.perf_counter()
+            dt = tEnd - tStart
+            ne= self._evalcount
+            if self.is_multiobjective:
+                self._opt_output = MultiobjectiveOptimizationOutput(self.opt_algorithm.name,self.name,dt,ne,sols)
+            else:
+                self._opt_output = SingleobjectiveOptimizationOutput(self.opt_algorithm.name,self.name, dt,ne, sols[-1])
+            self.calcualte_quality_measures()
+            return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a...
 
+    def calcualte_quality_measures(self):
+        oo = self._opt_output
+        if isinstance(oo,MultiobjectiveOptimizationOutput):
+            # add all quality measures here
+            oo.add_quality_measure('test_quality',42.42)
     def optimize_and_write(self,folder_path:str,x0= None):
-        tStart = time.perf_counter()  # početak mjerenja vremena
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-        print(dt_string+" " + self.name+ " optimization started")
+        print(dt_string+" " + self.full_name + " optimization started")
         self.optimize(x0)
-        tEnd = time.perf_counter()
-        dt = tEnd - tStart
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-        print(dt_string + " " + self.name + " optimization ended, (runtime = {} seconds)".format(dt))
-        path = folder_path + '\\' + self.name+'.csv'
+        print(dt_string + " " + self.full_name + " optimization ended")
+        path = folder_path
+        self.write_output(path)
+
+    def write_output(self, path):
         fieldnames = self.get_dvobjcon_names_line()
-        sol_lines = self.get_solutions_string_list()
-        writecsv_listofstrings(path, fieldnames, sol_lines)
+        self._opt_output.save_output(path,fieldnames)
+
+    def read_output(self,file_path):
+        if self.is_multiobjective:
+            opt_output, read_fieldnames = MultiobjectiveOptimizationOutput.factory_from_out_file(file_path)
+        else:
+            opt_output, read_fieldnames = SingleobjectiveOptimizationOutput.factory_from_out_file(file_path)
+        fieldnames = self.get_dvobjcon_names_line()
+        if read_fieldnames == fieldnames:
+            self._opt_output = opt_output
+            print('Compatible optimization output found and loaded for {}!'.format(self.full_name))
+            return
+        print('Warning: Compatible optimization output not found for {}!'.format(self.full_name))
+
 
     def get_current_sol(self):
         return self._cur_sol
@@ -439,6 +616,7 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         do_save = True
         for execu in self._analysis_executors:
             res = execu.analyze()
+            self._evalcount+=1
             if res != (AnalysisResultType.OK):
                 do_save = False
                 break
@@ -447,6 +625,9 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             self.save_current_solution_criteria()
         else:
             self._cur_sol.set_criteria_to_nan()
+        # Intended use is for optimization of computationaly expensive functions
+        if self._save_all_evaluated_solutions:
+            self._evaluated_solutions.append(deepcopy(self._cur_sol))
 
     @property
     def num_var(self):
@@ -468,7 +649,7 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         return self._opt_algorithm
     @property
     def solutions(self):
-        return self._solutions
+        return self._evaluated_solutions
 
     @opt_algorithm.setter
     def opt_algorithm(self, value):
@@ -490,7 +671,7 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         self._desvars.clear()
         self._constraints.clear()
         self._objectives.clear()
-        self._solutions.clear()
+        self._evaluated_solutions.clear()
         self._analysis_executors.clear()
 
     def _init_opt_problem(self):    #pozivanjem optimize metode objekta OptimizationAlgorithm klase, poziva se ova metoda inicijalizacije problema 
@@ -538,7 +719,7 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             self._constraints[i].set_ndarray_connector(cnct)
 
     def add_to_solutions(self,sol):
-        self._solutions.append(sol)         
+        self._evaluated_solutions.append(sol)
 
     def add_current_to_solutions(self):
         self.add_to_solutions(self._cur_sol)    #ovo s append nece raditi - jer append samo sprema pokazivac na tu vrijednost! Dodati barem deepcopy!
@@ -570,9 +751,5 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             names.append(item.name)
         return  ",".join(names)+'\n'
 
-    def get_solutions_string_list(self) -> List[str]:
-        sslist = []
-        for sol in self._solutions:
-            sslist.append(sol.write_to_csvline()+'\n')
-        return sslist
+
 

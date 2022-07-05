@@ -98,7 +98,7 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
         crossover = alg_ctrl.get('crossover')
         if crossover != None:
             alg_ctrl.pop('crossover')
-            print(crossover)
+            #print(crossover)
             crossover_obj = self._generate_crossover(crossover)
             self._alg_options['crossover'] = crossover_obj
             
@@ -182,7 +182,7 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
 
         type_of_mutation:str = item.get('name')
         item.pop('name')
-        print(item)
+        #print(item)
         mutation = get_mutation(type_of_mutation, **item)
 
         return mutation
@@ -275,7 +275,7 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
         #FINAL EVALUATION OF OPTIMAL SOLUTION TO BE STORED AS OptimizationProblemSolution
         
         x = sol.X
-        print(x)
+        #print(x)
             
         solutions:List[OptimizationProblemSolution] = []
         
@@ -283,7 +283,7 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
             out={}
             out['F'] = sol.F[index]
             out['G'] = sol.G[index]
-            print(x_individual)
+            #print(x_individual)
             problem._evaluate(x_individual,out)     #ovo sprema OptimizationProblemSolution u OptimizationProblem
             opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku. ili izraditi copy objekta - funckionalnost na razini pymoo_proto.. ili u optbase prosiriti poziv ovog optimize-a sa jos jednim callbackom koji bi pozivao add_
             solutions.append(deepcopy(opt_sol))   #append adds a reference only! in solutions, there are just pointers to opt_sol! it should actually make copies that are independent one of another, so that it doesn't change when opt_sol change                
@@ -337,7 +337,7 @@ class PymooOptimizationAlgorithmSingle(PymooOptimizationAlgorithm):
         if x.all == None:
             print('Algoritam nije uspio naci izvedivo rjesenje!')
             return
-        print(x)
+        #print(x)
 
         out={}
         out['F'] = sol.F

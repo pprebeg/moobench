@@ -114,7 +114,8 @@ class ScipyObjective(ScipyCriteria):    #objective nasljedjuje kriterij - funkci
 
 
 class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
-    def __init__(self,opt_ctrl:Dict ): #opt_ctrl - sadrži sve potrebno za kontrolu algoritma iz Scipy modula - u obliku key-value parova
+    def __init__(self,name:str, opt_ctrl:Dict ): #opt_ctrl - sadrži sve potrebno za kontrolu algoritma iz Scipy modula - u obliku key-value parova
+        super().__init__(name)
         self._method = opt_ctrl.get('method') #dobivanje iz key-value paira, pošalješ kljuc 'method' i dobijes vrijednost
         if self._method is None:
             self._method = 'SLSQP'  #defaultni je SLSQP, slijedi inicijalizacija sveg što se šalje pri pozivanju minimize funkcije

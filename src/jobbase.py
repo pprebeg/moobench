@@ -22,14 +22,14 @@ class MultibjectiveOptimizationComparer(Job):
 
     def optimize_task(self,op:OptimizationProblem,outfolder:str):
         op.optimize_and_write(outfolder)
-        return op.name + ' - Optimization Finished'
+        return 'Optimization finished:\n'+ op.opt_output.get_info()
 
     def execute(self):
         dt_string = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
         print(dt_string+' - Job started')
         with ProcessPoolExecutor(max_workers= self._max_workers) as executor:
-            outfolder='D:\\Documents\\Diplomski\\moobench\\out_4_7'
-            #outfolder=dirname(dirname(__file__))+'\\out'
+            outfolder='D:\\Development\moobench\\out'
+            outfolder=dirname(dirname(__file__))+'\\out'
             futures:List[Future] = []
             for op in self._ops:
                 futures.append(executor.submit(self.optimize_task,op,outfolder))

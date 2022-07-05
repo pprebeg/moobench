@@ -50,8 +50,8 @@ class jmetalConstraint():
         return self.con.value_gt_0         #slicno kao u scipy-ju! expression treba biti >=0, ako je <0, smatra se violation-om - to se vidi u jmetal.util.constraint_handling
 
     def get_con_value_normalized(self) ->float:
-        return self.con.value_gt_0/self.con.rhs         #slicno kao u scipy-ju! expression treba biti >=0, ako je <0, smatra se violation-om - to se vidi u jmetal.util.constraint_handling/self.con.rhs 
-
+        return self.con.value_gt_0         #slicno kao u scipy-ju! expression treba biti >=0, ako je <0, smatra se violation-om - to se vidi u jmetal.util.constraint_handling/self.con.rhs
+        #return self.con.value_gt_0 / self.con.rhs
 class WrappedjmetalProblem(FloatProblem):
 
     '''Class that inherits from Problem in order to instantiate an object that will define necessary methods for jmetal algorithm calculations. In the constructor - using super() function, 5 obligatory
@@ -155,7 +155,7 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
 
         if crossover != None:
             alg_ctrl.pop('crossover')
-            print(crossover)
+            #print(crossover)
             crossover_obj = self._generate_crossover(crossover)
             self._alg_options['crossover'] = crossover_obj
 

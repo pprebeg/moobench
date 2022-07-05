@@ -9,6 +9,13 @@ def writecsv_listofdicts(filepath:str,listofdicts:List[Dict]):
         for d in listofdicts:
             writer.writerow(d)
 
+def writecsv_dictionary(filepath:str,dict:Dict):
+    with open(filepath, 'w', newline='') as csvfile:
+        fieldnames = dict.keys()
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow(dict)
+
 def writecsv_listofstrings(filepath:str,fieldnames:str,listofstrings: List[str]):
     with open(filepath, 'w', newline='') as csvfile:
         csvfile.write(fieldnames)
