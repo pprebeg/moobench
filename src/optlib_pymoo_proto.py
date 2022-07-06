@@ -4,7 +4,7 @@ from pymoo.core.problem import ElementwiseProblem
 from optbase import OptimizationProblem,OptimizationAlgorithm,DesignVariable,DesignCriteria,DesignConstraint,OptimizationProblemSolution,DesignObjective
 from typing import List, Dict
 from pymoo.core.result import Result
-from pymoo.factory import get_algorithm, get_sampling, get_selection, get_crossover, get_mutation, get_termination
+from pymoo.factory import get_algorithm, get_sampling, get_selection, get_crossover, get_mutation, get_termination, get_reference_directions
 from pymoo.optimize import minimize
 from pymoo.util.termination.default import SingleObjectiveDefaultTermination, MultiObjectiveDefaultTermination
 from copy import copy, deepcopy
@@ -23,7 +23,7 @@ class PymooConstraint():
         return self.con.value_lt_0
 
     def get_con_value_normalized(self) ->float: 
-        return self.con.value_lt_0/self.con.rhs
+        return self.con.value_lt_0_normalized
 
 class WrappedPymooProblem(ElementwiseProblem):
 
@@ -81,6 +81,7 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
         sampling = None
         selection = None
         termination = None
+        ref_dirs = None
 
         self._alg_options = {}
         self._minimize_ctrl = {}
@@ -120,7 +121,12 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
             self._termination = self._generate_termination(termination)
             self.termination_generated = True
 
-        
+        ref_dirs = alg_ctrl.get('ref_dirs')
+        if ref_dirs != None:
+            alg_ctrl.pop('ref_dirs')
+            ref_dirs_obj = self._generate_ref_dirs(ref_dirs)
+            self._alg_options['ref_dirs'] = ref_dirs_obj
+
         self._alg_options.update(alg_ctrl)
         
         self._algorithm=get_algorithm(self._method,**self._alg_options)
@@ -171,18 +177,15 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
         type_of_crossover:str = item.get('name')
         item.pop('name')
 
-
         crossover = get_crossover(type_of_crossover, **item)
         
-
-
         return crossover
 
     def _generate_mutation(self, item:Dict):
 
         type_of_mutation:str = item.get('name')
         item.pop('name')
-        #print(item)
+
         mutation = get_mutation(type_of_mutation, **item)
 
         return mutation
@@ -204,6 +207,15 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
         termination = get_termination(type_of_termination, value)
 
         return termination
+
+    def _generate_ref_dirs(self,item):
+
+        type_of_ref_dirs:str = item.get('name')
+        item.pop('name')
+        
+        ref_dirs = get_reference_directions(type_of_ref_dirs, **item)
+
+        return ref_dirs
 
     def _get_bounds(self, dvs:List[DesignVariable]):
 
@@ -275,7 +287,14 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
         #FINAL EVALUATION OF OPTIMAL SOLUTION TO BE STORED AS OptimizationProblemSolution
         
         x = sol.X
-        #print(x)
+        if ((type(x) == list) or (type(x) == np.ndarray)):
+            if type(x) == list:
+                x = np.array(x)
+            if (x.all == None):
+                return None
+        else:
+            if x == None:
+                return None
             
         solutions:List[OptimizationProblemSolution] = []
         
@@ -334,10 +353,14 @@ class PymooOptimizationAlgorithmSingle(PymooOptimizationAlgorithm):
         #print(sol)
         x = sol.X
 
-        if x.all == None:
-            print('Algoritam nije uspio naci izvedivo rjesenje!')
-            return
-        #print(x)
+        if ((type(x) == list) or (type(x) == np.ndarray)):
+            if type(x) == list:
+                x = np.array(x)
+            if (x.all == None):
+                return None
+        else:
+            if x == None:
+                return None
 
         out={}
         out['F'] = sol.F

@@ -26,8 +26,11 @@ class MultibjectiveOptimizationComparer(Job):
         self._ref_pareto_front = ref_pareto_front
 
     def _optimize_task(self, op:OptimizationProblem, outfolder:str):
-        op.optimize_and_write(outfolder)
-        return 'Optimization finished:\n'+ op.opt_output.get_info()
+        successful = op.optimize_and_write(outfolder)
+        if successful:
+            return 'Optimization finished:\n'+ op.opt_output.get_info()
+        else:
+            return 'Optimization finished:\n Algorithm did not converge!'
 
     def execute(self):
         dt_string = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
