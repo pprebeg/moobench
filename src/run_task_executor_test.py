@@ -3,12 +3,21 @@ from Frame_problem import Analiza_okvira_OptimizationProblem
 from osyczka2 import Osyczka2_OptimizationProblem
 from concurrent.futures import ProcessPoolExecutor,Future
 from typing import List, Dict
-from jobbase import MultibjectiveOptimizationComparer
+from jobbase import MultibjectiveOptimizationComparer,MultibjectiveOptimizationComparerFromWrittenResults
 from optlib_pymoo_proto import PymooOptimizationAlgorithmMulti
 from optlib_jmetalpy_proto import jmetalOptimizationAlgorithmMulti
 from optlib_scipy import ScipyOptimizationAlgorithm
+import os
 
-def opttest_ref_front(max_number_of_workers:int=2):
+
+def load_pareto_front(op:OptimizationProblem, ref_out_path:str):
+    ref_pareto_front = None
+    ref_output = op.load_opt_output(ref_out_path)
+    if ref_output is not None and isinstance(ref_output,MultiobjectiveOptimizationOutput):
+        ref_pareto_front =  ref_output.solutions
+    return ref_pareto_front
+
+def opttest_ref_front(name,max_workers,out_folder_path):
     ops:List[OptimizationProblem] = []
     op = Analiza_okvira_OptimizationProblem('Ponton')
     pop_size = 500
@@ -24,11 +33,11 @@ def opttest_ref_front(max_number_of_workers:int=2):
     op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_1','nsga2', alg_ctrl=alg_ctrl)
     ops.append(op)
     #job
-    job = MultibjectiveOptimizationComparer('test',ops,max_number_of_workers)
+    job = MultibjectiveOptimizationComparer(name,max_workers,out_folder_path,None)
     job.execute()
 
 
-def opttest_osy(max_number_of_workers:int=2):
+def opttest_osy(name,max_workers,out_folder_path):
     ops: List[OptimizationProblem] = []
     pop_size = 100
     num_iter = 20
@@ -116,10 +125,60 @@ def opttest_osy(max_number_of_workers:int=2):
     op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_nsga_ii_4', 'nsga2', alg_ctrl=alg_ctrl)
     ops.append(op)
     # job
-    job = MultibjectiveOptimizationComparer('test', ops, max_number_of_workers)
+    job = MultibjectiveOptimizationComparer(name,max_workers,out_folder_path,None)
     job.execute()
 
-def opttest_one_osy(max_number_of_workers:int=2):
+def opttest_scipy(name,max_workers,out_folder_path):
+    ops:List[OptimizationProblem] = []
+    op = ('EX_16_4_COBYLA')
+    opt_ctrl = {
+        'method': 'COBYLA'}  # ovo je dictionary koji se šalje konstruktoru ScipyOptimizationAlgorithm-a.. to znaci da su ostale postavke defaultne..
+    # opt_ctrl = {'method': 'SLSQP'}
+    op.opt_algorithm = ScipyOptimizationAlgorithm(opt_ctrl)
+    ops.append(op)
+    op = EX_16_4_OptimizationProblem('EX_16_4_SLSQP')
+    opt_ctrl = {'method': 'SLSQP'}
+    op.opt_algorithm = ScipyOptimizationAlgorithm(opt_ctrl)
+    ops.append(op)
+    job = MultibjectiveOptimizationComparer(name, max_workers,out_folder_path, ops,None)
+    job.execute()
+
+def opttest_one_osy(name,max_workers,out_folder_path):
+    ops: List[OptimizationProblem] = []
+    pop_size = 200
+    num_iter = 100
+    max_evaluations = pop_size * num_iter
+    #1
+    op = Osyczka2_OptimizationProblem('OSY')
+    mutation = {'name':'real_pm', 'eta':20, 'prob': 0.5}  # Check
+    crossover = {'name':'real_sbx', 'eta':20, 'prob':0.8}  # Check
+    termination = ('n_eval', max_evaluations)
+    alg_ctrl = {'pop_size': pop_size, 'n_offsprings': 10, 'mutation': mutation, 'crossover': crossover,
+                'termination': termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_1', 'nsga2', alg_ctrl=alg_ctrl)
+    ops.append(op)
+    job = MultibjectiveOptimizationComparer(name,max_workers,out_folder_path,None)
+    job.execute()
+
+def opttest_ref_front_osy(name,max_workers,out_folder_path):
+    ops: List[OptimizationProblem] = []
+    pop_size = 200
+    num_iter = 600
+    max_evaluations = pop_size * num_iter
+    #1
+    op = Osyczka2_OptimizationProblem('OSY')
+    mutation = {'name':'real_pm', 'eta':20, 'prob': 0.5}  # Check
+    crossover = {'name':'real_sbx', 'eta':20, 'prob':0.8}  # Check
+    termination = ('n_eval', max_evaluations)
+    alg_ctrl = {'pop_size': pop_size, 'n_offsprings': 10, 'mutation': mutation, 'crossover': crossover,
+                'termination': termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_200_sol_ref_front', 'nsga2', alg_ctrl=alg_ctrl)
+    ops.append(op)
+    # Create and execute job
+    job = MultibjectiveOptimizationComparer(name, max_workers,out_folder_path, ops,None)
+    job.execute()
+
+def opttest_one_osy_load(name,max_workers,out_folder_path,ref_out_path):
     ops: List[OptimizationProblem] = []
     pop_size = 200
     num_iter = 200
@@ -133,28 +192,21 @@ def opttest_one_osy(max_number_of_workers:int=2):
                 'termination': termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
     op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_one_osy', 'nsga2', alg_ctrl=alg_ctrl)
     ops.append(op)
-    job = MultibjectiveOptimizationComparer('test', ops, max_number_of_workers)
+    # load referent front
+    ref_pareto_front = load_pareto_front(op, ref_out_path)
+    job = MultibjectiveOptimizationComparerFromWrittenResults(name,max_workers,out_folder_path, ops, ref_pareto_front)
     job.execute()
 
-def opttest_scipy(max_number_of_workers:int=2):
-    ops:List[OptimizationProblem] = []
-    op = ('EX_16_4_COBYLA')
-    opt_ctrl = {
-        'method': 'COBYLA'}  # ovo je dictionary koji se šalje konstruktoru ScipyOptimizationAlgorithm-a.. to znaci da su ostale postavke defaultne..
-    # opt_ctrl = {'method': 'SLSQP'}
-    op.opt_algorithm = ScipyOptimizationAlgorithm(opt_ctrl)
-    ops.append(op)
-    op = EX_16_4_OptimizationProblem('EX_16_4_SLSQP')
-    opt_ctrl = {'method': 'SLSQP'}
-    op.opt_algorithm = ScipyOptimizationAlgorithm(opt_ctrl)
-    ops.append(op)
-    job = MultibjectiveOptimizationComparer('test',ops,max_number_of_workers)
-    job.execute()
+
 
 if __name__ == '__main__':
+    out_folder_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'out')
     max_number_of_workers = 4
-    #opttest_ref_front(max_number_of_workers)
-    #opttest_scipy(max_number_of_workers)
-    #opttest_osy(max_number_of_workers)
-    opttest_one_osy(max_number_of_workers)
-
+    refoutfile='OSY_pymoo_nsga_ii_200_sol_ref_front.csv'
+    ref_out_file_path = os.path.join(out_folder_path, refoutfile)
+    #opttest_ref_front('test',max_number_of_workers,out_folder_path)
+    #opttest_scipy('test',max_number_of_workers,out_folder_path)
+    #opttest_osy('test',max_number_of_workers,out_folder_path)
+    #opttest_one_osy('test',max_number_of_workers,out_folder_path)
+    #opttest_ref_front_osy('test', max_number_of_workers, out_folder_path)
+    opttest_one_osy_load('test', max_number_of_workers, out_folder_path, ref_out_file_path)

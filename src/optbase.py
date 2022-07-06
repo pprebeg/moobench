@@ -3,9 +3,11 @@ import numpy as np
 from enum import Enum
 from typing import List, Dict,TypeVar
 from copy import copy, deepcopy
-from utils import writecsv_listofstrings,readcsv_listofstrings,writecsv_dictionary,save_pareto_plot
+from utils import writecsv_listofstrings,readcsv_listofstrings,writecsv_dictionary,save_pareto_plot,save_pareto_plot_wr
+from utils import readcsv_listofdicts,readcsv_listofstrings
 import time
 from datetime import datetime
+import os
 class ConstrType(Enum): #Enumaratori za kontrolu tijeka programa
     GT = 1
     LT = 2
@@ -305,9 +307,6 @@ class OptimizationProblemSolution():
 
     '''Class for holding optimization solutions - values of design variables, objective functions and constraints. Storing is envoked in Optimization Problem class. '''
     def __init__(self, num_var, num_obj,num_constr):
-        self._dvs = np.zeros(num_var)
-        self._objs = np.zeros(num_obj)
-        self._cons = np.zeros(num_constr)
         self._num_var = num_var
         self._num_obj = num_obj
         self._num_con = num_constr
@@ -406,8 +405,11 @@ class OptimizationProblemMultipleSolutions(OptimizationProblemSolution):
         return multiline
 
     def read_from_csvline(self, multiline: str):
+        if isinstance(multiline,List):
+            multiline = ",".join(multiline)
         self._values = np.fromstring(multiline, dtype=float, sep=',')
-        self._values.reshape(self.num_sol,self.num_opt_components)
+        self._values = self._values.reshape(self.num_sol,self.num_opt_components)
+        pass
 
 class OptimizationAlgorithm(ABC): #doslovce klasa koja samo sluzi tome da bude nacrt tome kako ce ScipyOptimizationAlgorithm izgledati... 
     def __init__(self,name:str):
@@ -430,7 +432,6 @@ class OptimizationAlgorithm(ABC): #doslovce klasa koja samo sluzi tome da bude n
                  x0:np.ndarray,Callback_evaluate,Callback_get_curren_solution)->List[OptimizationProblemSolution]:
         pass
 
-OO = TypeVar('OO', bound='OptimizationOutput')
 class OptimizationOutput(ABC):
     def __init__(self,opt_alg_name:str,opt_problem_name:str,runtime:float,num_evaluations:int):
         self._creation_date_time:str = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
@@ -481,7 +482,7 @@ class OptimizationOutput(ABC):
         pass
 
     @classmethod
-    def factory_from_out_file(out_file_path):
+    def factory_from_out_file(cls,out_file_path):
         pass
 
     def get_basic_data_dict(self)->Dict[str,str]:
@@ -491,6 +492,9 @@ class OptimizationOutput(ABC):
         dd['runtime'] = str(self.runtime)
         dd['num_evaluations'] = str(self.num_evaluations)
         dd['creation_date_time'] = self.creation_date_time
+        dd['num_var'] = str(self.num_var)
+        dd['num_obj'] = str(self.num_obj)
+        dd['num_con'] = str(self.num_con)
         return dd
 
     def get_info(self)->str:
@@ -538,6 +542,10 @@ class MultiobjectiveOptimizationOutput(OptimizationOutput):
         self._quality_measures[key] =value
 
     @property
+    def quality_measures(self):
+        return self._quality_measures
+
+    @property
     def solutions(self):
         return self._solutions
 
@@ -545,21 +553,46 @@ class MultiobjectiveOptimizationOutput(OptimizationOutput):
     def num_sol(self):
         return self._solutions.num_sol
     @classmethod
-    def factory_from_out_file(cls:type[OO], out_file_path):
-        opt_alg_name:str= ''
-        runtime:float = 0.0
-        solutions: List[OptimizationProblemSolution] = []
-        new_instance = cls(opt_alg_name,runtime,solutions)
-        fieldnames_tocheck = ''
-        return new_instance,fieldnames_tocheck
+    def factory_from_out_file(cls, out_file_path):
+        doutlist = readcsv_listofdicts(out_file_path)
+        if doutlist is not None:
+            dd=doutlist[0]
+            opt_alg_name:str= dd.pop('opt_alg_name','')
+            opt_problem_name:str = dd.pop('opt_problem_name','')
+            runtime:float = float(dd.pop('runtime',0.0))
+            num_eval:int = int(dd.pop('num_evaluations',0))
+            creation_date_time = dd.pop('creation_date_time','')
+            num_sol = int(dd.pop('num_sol',0))
+            sols_file_path = dd.pop('sols_file_path')
+            num_var = int(dd.pop('num_var',0))
+            num_obj = int(dd.pop('num_obj',0))
+            num_con = int(dd.pop('num_con',0))
+            list_of_strings =  readcsv_listofstrings(sols_file_path)
+            fieldnames_tocheck = list_of_strings[0]
+            list_of_strings = list_of_strings[1:]
+            sols = OptimizationProblemMultipleSolutions(num_var, num_obj, num_con,num_sol)
+            sols.read_from_csvline(list_of_strings)
+            new_instance = cls(opt_alg_name,opt_problem_name,runtime,num_eval,sols)
+            new_instance._creation_date_time = creation_date_time
+            for key,value in dd.items():
+                new_instance.add_quality_measure(key,float(value))
+
+            return new_instance,fieldnames_tocheck
+        return None,None
 
     def get_solutions_string_list(self) -> List[str]:
         return self._solutions.write_to_csvline()
 
-    def save_pareto_plot(self, path, obj_1_name, obj_2_name):
+    def save_pareto_plot(self, path:str, obj_1_name:str, obj_2_name:str,
+                         ref_pareto_front:OptimizationProblemMultipleSolutions = None):
         xdata = self.solutions.get_ndarray_all_solutions_for_objective(0)
         ydata = self.solutions.get_ndarray_all_solutions_for_objective(1)
-        save_pareto_plot(path,self.full_name,xdata,ydata,obj_1_name,obj_2_name)
+        if ref_pareto_front is None:
+            save_pareto_plot(path,self.full_name,xdata,ydata,obj_1_name,obj_2_name)
+        else:
+            xref = ref_pareto_front.get_ndarray_all_solutions_for_objective(0)
+            yref = ref_pareto_front.get_ndarray_all_solutions_for_objective(1)
+            save_pareto_plot_wr(path,self.full_name,xdata,ydata,xref,yref,obj_1_name,obj_2_name)
 
     def save_output(self, folder_path,fieldnames):
         file_path= folder_path+'\\'+self.full_name
@@ -575,6 +608,8 @@ class MultiobjectiveOptimizationOutput(OptimizationOutput):
 
     def append_output_data_dictionary(self,output_data:Dict[str,str]):
         pass
+
+
     def get_info(self)->str:
         msg  = super().get_info()
         msg  +=  '\nnum solutions: '+ str(self.num_sol)
@@ -654,30 +689,58 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
                 self._opt_output = MultiobjectiveOptimizationOutput(self.opt_algorithm.name,self.name,dt,ne,mosols)
             else:
                 self._opt_output = SingleobjectiveOptimizationOutput(self.opt_algorithm.name,self.name, dt,ne, sols[-1])
-            self.calculate_quality_measures()
             return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a...
 
-    def calculate_quality_measures(self):
+    def calculate_quality_measures(self,ref_pareto_front:OptimizationProblemMultipleSolutions):
         oo = self._opt_output
         if isinstance(oo,MultiobjectiveOptimizationOutput):
             # add all quality measures here
             oo.add_quality_measure('test_quality',42.42)
-    def optimize_and_write(self,folder_path:str,x0= None):
+
+    def optimize_and_write(self,folder_path:str,x0= None,
+                           ref_pareto_front:OptimizationProblemMultipleSolutions = None):
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
         print(dt_string+" " + self.full_name + " optimization started")
         self.optimize(x0)
+        self.calculate_quality_measures(ref_pareto_front)
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
         print(dt_string + " " + self.full_name + " optimization ended")
         path = folder_path
         self.write_output(path)
-        self.save_pareto_plot(path)
+        self.save_pareto_plot(path,ref_pareto_front)
 
-    def save_pareto_plot(self,path):
+    def read_results_or_optimize_and_write(self, folder_path:str, x0= None,
+                                           ref_pareto_front:OptimizationProblemMultipleSolutions = None):
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        print(dt_string+" " + self.full_name + " optimization started")
+        output_file_path = os.path.join(folder_path, self.full_name + '.csv')
+        read_opt_output = self.load_opt_output(output_file_path)
+        if read_opt_output is None:
+            self.optimize(x0)
+            self.write_output(folder_path)
+        else:
+            self._opt_output = read_opt_output
+        self.calculate_quality_measures(ref_pareto_front)
+        self.save_pareto_plot(folder_path,ref_pareto_front)
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        print(dt_string + " " + self.full_name + " read result or optimization ended")
+
+
+    def load_opt_output(self, output_file_path:str)->bool:
+        isExist = os.path.exists(output_file_path)
+        if isExist:
+            return  self.read_output(output_file_path)
+        return None
+
+
+    def save_pareto_plot(self,path,ref_pareto_front = None):
         out = self._opt_output
         if self.num_obj == 2 and isinstance(out,MultiobjectiveOptimizationOutput):
-            out.save_pareto_plot(path,self._objectives[0].name, self._objectives[1].name)
+            out.save_pareto_plot(path,self._objectives[0].name, self._objectives[1].name,ref_pareto_front)
 
     def write_output(self, path):
         fieldnames = self.get_dvobjcon_names_line()
@@ -689,12 +752,9 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         else:
             opt_output, read_fieldnames = SingleobjectiveOptimizationOutput.factory_from_out_file(file_path)
         fieldnames = self.get_dvobjcon_names_line()
-        if read_fieldnames == fieldnames:
-            self._opt_output = opt_output
-            print('Compatible optimization output found and loaded for {}!'.format(self.full_name))
-            return
-        print('Warning: Compatible optimization output not found for {}!'.format(self.full_name))
-
+        if opt_output is not None and read_fieldnames is not None and read_fieldnames == fieldnames.rstrip():
+            return opt_output
+        return None
 
     def get_current_sol(self):
         return self._cur_sol
