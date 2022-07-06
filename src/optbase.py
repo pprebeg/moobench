@@ -6,6 +6,7 @@ from copy import copy, deepcopy
 from utils import writecsv_listofstrings,readcsv_listofstrings,writecsv_dictionary,save_pareto_plot
 import time
 from datetime import datetime
+
 class ConstrType(Enum): #Enumaratori za kontrolu tijeka programa
     GT = 1
     LT = 2
