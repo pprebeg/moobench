@@ -37,7 +37,7 @@ def opttest_ref_front(name,max_workers,out_folder_path):
     job.execute()
 
 def opttest_frame_problem(max_number_of_workers:int=2):
-
+    pass
 def opttest_osy(name,max_workers,out_folder_path):
     ops:List[OptimizationProblem] = []
     pop_size = 100
@@ -386,7 +386,6 @@ def opttest_one_osy_load(name,max_workers,out_folder_path,ref_out_path):
 if __name__ == '__main__':
     out_folder_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'out')
     max_number_of_workers = 4
-    max_number_of_workers = 6
     refoutfile='OSY_pymoo_nsga_ii_200_sol_ref_front.csv'
     ref_out_file_path = os.path.join(out_folder_path, refoutfile)
     #opttest_ref_front('test',max_number_of_workers,out_folder_path)
@@ -399,4 +398,4 @@ if __name__ == '__main__':
     #opttest_scipy(max_number_of_workers)
     #opttest_osy(max_number_of_workers)
     #opttest_one_osy(max_number_of_workers)
-    opttest_frame_problem(max_number_of_workers)
+    #opttest_frame_problem(max_number_of_workers)

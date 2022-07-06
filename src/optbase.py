@@ -697,14 +697,14 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
 
             #Provjera da optlib (i algoritam nije vratio None)
             if sols != None:
-            ne= self._evalcount
-            if self.is_multiobjective:
-                mosols = OptimizationProblemMultipleSolutions(sols[0].num_var,sols[0].num_obj,sols[0].num_con,len(sols))
-                for i in range(len(sols)):
-                    mosols.set_one_solution(i,sols[i])
-                self._opt_output = MultiobjectiveOptimizationOutput(self.opt_algorithm.name,self.name,dt,ne,mosols)
-            else:
-                self._opt_output = SingleobjectiveOptimizationOutput(self.opt_algorithm.name,self.name, dt,ne, sols[-1])
+                ne= self._evalcount
+                if self.is_multiobjective:
+                    mosols = OptimizationProblemMultipleSolutions(sols[0].num_var,sols[0].num_obj,sols[0].num_con,len(sols))
+                    for i in range(len(sols)):
+                        mosols.set_one_solution(i,sols[i])
+                    self._opt_output = MultiobjectiveOptimizationOutput(self.opt_algorithm.name,self.name,dt,ne,mosols)
+                else:
+                    self._opt_output = SingleobjectiveOptimizationOutput(self.opt_algorithm.name,self.name, dt,ne, sols[-1])
             else:
                 print(f'Algorithm {self._opt_algorithm.name} on problem {self._name} did not converge!')                
             return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a...
