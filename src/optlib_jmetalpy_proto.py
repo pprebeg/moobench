@@ -33,6 +33,12 @@ from jmetal.util.comparator import EqualSolutionsComparator, SolutionAttributeCo
 #IMPORT TERMINATION CRITERIA
 from jmetal.util.termination_criterion import StoppingByEvaluations, StoppingByTime, StoppingByKeyboard, StoppingByQualityIndicator
 
+#IMPORT SOLUTIONS
+from jmetal.core.solution import FloatSolution, IntegerSolution, PermutationSolution, BinarySolution, CompositeSolution
+
+#IMPORT FOR MOCELL
+from jmetal.util.archive import CrowdingDistanceArchive, BoundedArchive, NonDominatedSolutionsArchive, ArchiveWithReferencePoint, CrowdingDistanceArchiveWithReferencePoint
+from jmetal.util.neighborhood import WeightNeighborhood, WeightVectorNeighborhood, L5, C9
 
 
 class jmetalConstraint():
@@ -50,8 +56,8 @@ class jmetalConstraint():
         return self.con.value_gt_0         #slicno kao u scipy-ju! expression treba biti >=0, ako je <0, smatra se violation-om - to se vidi u jmetal.util.constraint_handling
 
     def get_con_value_normalized(self) ->float:
-        return self.con.value_gt_0         #slicno kao u scipy-ju! expression treba biti >=0, ako je <0, smatra se violation-om - to se vidi u jmetal.util.constraint_handling/self.con.rhs
-        #return self.con.value_gt_0 / self.con.rhs
+        return self.con.value_gt_0_normalized
+    
 class WrappedjmetalProblem(FloatProblem):
 
     '''Class that inherits from Problem in order to instantiate an object that will define necessary methods for jmetal algorithm calculations. In the constructor - using super() function, 5 obligatory
@@ -140,6 +146,9 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
         mutation = alg_ctrl.get('mutation')
         termination = alg_ctrl.get('termination')
         sampling = alg_ctrl.get('sampling')
+        archive = alg_ctrl.get('archive')
+        neighborhood = alg_ctrl.get('neighborhood')
+
         
         if sampling != None:
             alg_ctrl.pop('sampling')
@@ -169,7 +178,15 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
             self._termination = self._generate_termination(termination)
             self._alg_options['termination_criterion'] = self._termination           
             
-
+        if archive != None:
+            alg_ctrl.pop('archive')
+            archive_obj = self._generate_archive(archive)
+            self._alg_options['archive'] = archive_obj
+            
+        if neighborhood != None:
+            alg_ctrl.pop('neighborhood')
+            neighborhood_obj = self._generate_neighborhood(neighborhood)
+            self._alg_options['neighborhood'] = neighborhood_obj
 
         self._alg_options.update(alg_ctrl)
              
@@ -362,6 +379,54 @@ class jmetalOptimizationAlgorithm(OptimizationAlgorithm):
             
         return termination
 
+    def _generate_reference_point(self, item):
+
+##        type_of_solution:str = item.get('name')
+##
+##        if type_of_solution == 'float':
+##            reference_point = FloatSolution([0], [1], problem.number_of_objectives, )
+##
+##        elif type_of_solution == 'integer':
+##            reference_point = IntegerSolution([0], [1], problem.number_of_objectives, )
+##        
+##        reference_point.objectives = [1., 1.]  # Mandatory for HYPE
+##
+##        return reference_point
+        pass
+
+    def _generate_archive(self,item):
+
+        type_of_archive:str = item.get('name')
+        item.pop('name')        
+
+        if type_of_archive == 'crowding_distance':
+            archive = CrowdingDistanceArchive(**item)
+        elif type_of_archive == 'bounded':
+            archive = BoundedArchive(**item)       
+        elif type_of_archive == 'non_dominated_solutions':
+            archive = NonDominatedSolutionsArchive(**item)
+        elif type_of_archive == 'with_reference_point':
+            archive = ArchiveWithReferencePoint(**item)
+        elif type_of_archive == 'crowding_distance_with_reference_point':
+            archive = CrowdingDistanceArchiveWithReferencePoint(**item)
+
+        return archive
+
+    def _generate_neighborhood(self, item): 
+
+        type_of_neighborhood:str = item.get('name')
+        item.pop('name')        
+
+        if type_of_neighborhood == 'weight':
+            neighborhood = WeightNeighborhood(**item)
+        elif type_of_neighborhood == 'weight_vector':
+            neighborhood = WeightVectorNeighborhood(**item)       
+        elif type_of_neighborhood == 'l5':
+            neighborhood = L5(**item)
+        elif type_of_neighborhood == 'c9':
+            neighborhood = C9(**item)
+
+        return neighborhood
 
     def _get_bounds(self, dvs:List[DesignVariable]):
 
@@ -421,14 +486,18 @@ class jmetalOptimizationAlgorithmMulti(jmetalOptimizationAlgorithm):
 
         #FINAL EVALUATION OF OPTIMAL SOLUTION TO BE STORED AS OptimizationProblemSolution
 
-        solutions:List[OptimizationProblemSolution] = []
-        
-        for solution_ in sol:
+        solutions = None
+
+        if sol != None:
             
-            problem.evaluate(solution_)     #ovo bi trebalo spremiti u OptimizationProblemSolution, OptimizationProblem
-            opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku. ili izraditi copy objekta - funckionalnost na razini pymoo_proto.. ili u optbase prosiriti poziv ovog optimize-a sa jos jednim callbackom koji bi pozivao add_
-            solutions.append(deepcopy(opt_sol))   #append adds a reference only! in solutions, there are just pointers to opt_sol! it should actually make copies that are independent one of another, so that it doesn't change when opt_sol change                
-    
+            solutions:List[OptimizationProblemSolution] = []
+
+            for solution_ in sol:
+                
+                problem.evaluate(solution_)     #ovo bi trebalo spremiti u OptimizationProblemSolution, OptimizationProblem
+                opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku. ili izraditi copy objekta - funckionalnost na razini pymoo_proto.. ili u optbase prosiriti poziv ovog optimize-a sa jos jednim callbackom koji bi pozivao add_
+                solutions.append(deepcopy(opt_sol))   #append adds a reference only! in solutions, there are just pointers to opt_sol! it should actually make copies that are independent one of another, so that it doesn't change when opt_sol change                
+        
         return solutions  
 
 class jmetalOptimizationAlgorithmSingle(jmetalOptimizationAlgorithm):
@@ -463,12 +532,13 @@ class jmetalOptimizationAlgorithmSingle(jmetalOptimizationAlgorithm):
         
         self._sol = sol
 
-        problem.evaluate(sol)
+        solutions = None
 
-        opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca objekt OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u cistom numerickom obliku.
+        if sol != None:
 
-        solutions:List[OptimizationProblemSolution] = []
-
-        solutions.append(opt_sol)
+            problem.evaluate(sol)
+            opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca objekt OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u cistom numerickom obliku.
+            solutions:List[OptimizationProblemSolution] = []
+            solutions.append(opt_sol)
 
         return solutions

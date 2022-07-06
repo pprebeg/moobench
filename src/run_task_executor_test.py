@@ -27,6 +27,181 @@ def opttest_ref_front(max_number_of_workers:int=2):
     job = MultibjectiveOptimizationComparer('test',ops,max_number_of_workers)
     job.execute()
 
+def opttest_frame_problem(max_number_of_workers:int=2):
+
+    ops:List[OptimizationProblem] = []
+    pop_size = 100
+    num_iter = 400
+    max_evaluations = pop_size * num_iter
+
+    #PYMOO
+
+    #1
+    op = Analiza_okvira_OptimizationProblem('Frame')
+    
+    mutation = {'name':'real_pm', 'eta':20, 'prob': 0.6}  # Check
+    crossover = {'name':'real_sbx', 'eta':20, 'prob':0.8}  # Check
+    termination = ('n_eval', max_evaluations)
+    
+    alg_ctrl = {'pop_size': pop_size, 'mutation': mutation,'crossover': crossover, 'termination':termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_1','nsga2', alg_ctrl=alg_ctrl)
+    ops.append(op)
+
+    #2
+    op = Analiza_okvira_OptimizationProblem('Frame')
+    
+    mutation = {'name':'real_pm', 'eta':20, 'prob': 0.6}  # Check
+    crossover = {'name':'real_sbx', 'eta':20, 'prob':0.8}  # Check
+    termination = ('n_eval', max_evaluations)
+    
+    alg_ctrl = {'pop_size': pop_size, 'mutation': mutation,'crossover': crossover, 'termination':termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_nsga_ii_2','nsga2', alg_ctrl=alg_ctrl)
+    ops.append(op)
+
+##    #3
+##    op = Analiza_okvira_OptimizationProblem('Frame')
+##    
+##    mutation = {'name':'real_pm', 'eta':20, 'prob': 1/op.num_var*10}  # Check
+##    crossover = {'name':'real_sbx', 'eta':20, 'prob':0.8}  # Check
+##    termination = ('n_eval', max_evaluations)
+###    ref_points = np.array([[0.5, 0.2], [0.1, 0.6]]) #jasno da treba masu drugacije normalizirati tako da možemo provrtiti
+##    
+##    alg_ctrl = {'pop_size': pop_size, 'mutation': mutation,'crossover': crossover, 'termination':termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+##    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_r-nsga_ii_1','rnsga2', alg_ctrl=alg_ctrl)
+##    ops.append(op)
+
+    #4
+    op = Analiza_okvira_OptimizationProblem('Frame')
+    
+    mutation = {'name':'real_pm', 'eta':20, 'prob': 0.6}  # Check
+    crossover = {'name':'real_sbx', 'eta':20, 'prob':0.8}  # Check
+    termination = ('n_eval', max_evaluations)
+    ref_dirs = {'name':'das-dennis', 'n_dim':op.num_obj, 'n_partitions':24} #moze se poslati i numpy array u dictionary alg_ctrl kao 'ref_dirs':numpy.array
+    
+    alg_ctrl = {'pop_size': pop_size, 'mutation': mutation,'crossover': crossover, 'termination':termination, 'ref_dirs':ref_dirs}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_u-nsga_iii_1','unsga3', alg_ctrl=alg_ctrl)
+    ops.append(op)
+
+    #5
+    op = Analiza_okvira_OptimizationProblem('Frame')
+    
+    mutation = {'name':'real_pm', 'eta':20, 'prob': 0.6}  # Check
+    crossover = {'name':'real_sbx', 'eta':20, 'prob':0.8}  # Check
+    termination = ('n_eval', max_evaluations)
+    ref_dirs = {'name':'das-dennis', 'n_dim':op.num_obj, 'n_partitions':24} #moze se poslati i numpy array u dictionary alg_ctrl kao 'ref_dirs':numpy.array
+    
+    alg_ctrl = {'pop_size': pop_size, 'mutation': mutation,'crossover': crossover, 'termination':termination, 'ref_dirs':ref_dirs}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_r-nsga_iii_1','unsga3', alg_ctrl=alg_ctrl)
+    ops.append(op)
+
+    #6 - ZASAD CTAE ne izvršava uspješno
+    op = Analiza_okvira_OptimizationProblem('Frame')
+    
+    mutation = {'name':'real_pm', 'eta':20, 'prob': 0.6}  # Check
+    crossover = {'name':'real_sbx', 'eta':20, 'prob':0.8}  # Check
+    termination = ('n_eval', max_evaluations)
+    ref_dirs = {'name':'das-dennis', 'n_dim':op.num_obj, 'n_partitions':24} #moze se poslati i numpy array u dictionary alg_ctrl kao 'ref_dirs':numpy.array
+    
+    alg_ctrl = { 'mutation': mutation,'crossover': crossover, 'termination':termination, 'ref_dirs':ref_dirs}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = PymooOptimizationAlgorithmMulti('pymoo_c-taea_1','ctaea', alg_ctrl=alg_ctrl)
+    ops.append(op)
+
+    #JMETALPY
+
+    #1
+    op = Analiza_okvira_OptimizationProblem('Frame')
+    
+    termination = {'name':'n_eval', 'max_evaluations':max_evaluations}
+    
+    alg_ctrl = {'population_size': pop_size, 'cr': 0.5, 'f': 0.5, 'termination':termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_gde3_1','gde3', alg_ctrl=alg_ctrl)
+    ops.append(op)
+
+##    #2
+##    op = Analiza_okvira_OptimizationProblem('Frame')
+##
+##    mutation = {'name':'polynomial','probability':1.0 / op.num_var, 'distribution_index':20}
+##    crossover = {'name':'sbx','probability':1.0, 'distribution_index':20}
+##    termination = {'name':'n_eval', 'max_evaluations':max_evaluations}
+##    
+####    reference_point = {'name':'float', 'lower_bound': [,], 'upper_bound': [,], 'number_of_objectives': op.num_obj, 'number_of_constraints': op.num_con}
+##    alg_ctrl = {'population_size': pop_size,'offspring_population_size':pop_size, 'mutation': mutation, 'crossover': crossover, 'termination_criterion':termination, 'reference_point':reference_point}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+##    op.opt_algorithm = PymooOptimizationAlgorithmMulti('jmetalpy_hype_1','hype', alg_ctrl=alg_ctrl)
+##    ops.append(op)
+
+    #3
+    op = Analiza_okvira_OptimizationProblem('Frame')
+    
+    mutation = {'name':'polynomial','probability':0.6, 'distribution_index':0.20}
+    crossover = {'name':'sbx','probability':1.0, 'distribution_index':20}
+    termination = {'name':'n_eval', 'max_evaluations':max_evaluations}
+    
+    alg_ctrl = {'population_size': pop_size,'offspring_population_size':pop_size, 'kappa':1, 'mutation': mutation, 'crossover': crossover, 'termination':termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_ibea_1','ibea', alg_ctrl=alg_ctrl)
+    ops.append(op)
+
+
+##    #4
+##    op = Analiza_okvira_OptimizationProblem('Frame')
+##
+##    mutation = {'name':'polynomial','probability':1.0 / op.num_var, 'distribution_index':20}
+##    crossover = {'name':'sbx','probability':1.0, 'distribution_index':20}
+##    termination = {'name':'n_eval', 'max_evaluations':max_evaluations}
+##    
+##    alg_ctrl = {'population_size': pop_size,'offspring_population_size':pop_size, 'mutation': mutation, 'crossover': crossover, 'termination':termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+##    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_spea2_1','spea2', alg_ctrl=alg_ctrl)
+##    ops.append(op)
+
+    #5
+    op = Analiza_okvira_OptimizationProblem('Frame')
+    
+    neighborhood={'name':'c9','rows':10,'columns':10}
+    archive={'name':'crowding_distance', 'maximum_size':100}
+    mutation = {'name':'polynomial','probability':0.6, 'distribution_index':0.2}
+    crossover = {'name':'sbx','probability':1.0, 'distribution_index':20}
+    termination = {'name':'n_eval', 'max_evaluations':max_evaluations}
+
+    alg_ctrl = {'population_size': pop_size, 'neighborhood':neighborhood, 'archive':archive, 'mutation': mutation, 'crossover': crossover, 'termination':termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_mocell_1','mocell', alg_ctrl=alg_ctrl)
+    ops.append(op)
+
+
+    #6
+##algorithm = MOEAD(
+##    problem=problem,
+##    population_size=300,
+##    crossover=DifferentialEvolutionCrossover(CR=1.0, F=0.5, K=0.5),
+##    mutation=PolynomialMutation(probability=1.0 / problem.number_of_variables, distribution_index=20),
+##    aggregative_function=Tschebycheff(dimension=problem.number_of_objectives),
+##    neighbor_size=20,
+##    neighbourhood_selection_probability=0.9,
+##    max_number_of_replaced_solutions=2,
+##    weight_files_path='resources/MOEAD_weights',
+##    termination_criterion=StoppingByEvaluations(max=max_evaluations)
+##)
+##    op = Analiza_okvira_OptimizationProblem('Frame')
+##    
+##    neighborhood={'name':'c9','rows':10,'columns':10}
+##    archive={'name':'crowding_distance', 'maximum_size':100}
+##    mutation=PolynomialMutation(probability=1.0 / problem.number_of_variables, distribution_index=20),
+##    crossover=SBXCrossover(probability=1.0, distribution_index=20),
+##    termination_criterion=StoppingByEvaluations(max=max_evaluations)
+##
+##    op = Analiza_okvira_OptimizationProblem('Frame')
+##
+##    mutation = {'name':'polynomial','probability':1.0 / op.num_var, 'distribution_index':20}
+##    crossover = {'name':'de','CR':1.0, 'F':0.5, 'K':0.5}
+##    termination = {'name':'n_eval', 'max_evaluations':max_evaluations)
+##    
+##    alg_ctrl = {'population_size': pop_size,'offspring_population_size':pop_size, 'neighborhood':neighborhood, 'archive':archive, 'mutation': mutation, 'crossover': crossover, 'termination_criterion':termination}  # u obliku dictionary-ja se salju svi keyword argumenti! Dodatni argumenti poput tuple-a('n_gen',40) - al to su kriteriji izgleda termination
+##    op.opt_algorithm = jmetalOptimizationAlgorithmMulti('jmetalpy_mocell_1','mocell', alg_ctrl=alg_ctrl)
+##    ops.append(op)
+
+    
+    #JOB
+    job = MultibjectiveOptimizationComparer('test',ops,max_number_of_workers)
+    job.execute()    
+
 
 def opttest_osy(max_number_of_workers:int=2):
     ops: List[OptimizationProblem] = []
@@ -152,9 +327,9 @@ def opttest_scipy(max_number_of_workers:int=2):
     job.execute()
 
 if __name__ == '__main__':
-    max_number_of_workers = 4
+    max_number_of_workers = 6
     #opttest_ref_front(max_number_of_workers)
     #opttest_scipy(max_number_of_workers)
     #opttest_osy(max_number_of_workers)
-    opttest_one_osy(max_number_of_workers)
-
+    #opttest_one_osy(max_number_of_workers)
+    opttest_frame_problem(max_number_of_workers)

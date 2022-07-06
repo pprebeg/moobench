@@ -250,6 +250,20 @@ class DesignConstraint(DesignCriteria):
         else:                               
             return self.value - self.rhs
         return
+    
+    @property
+    def value_gt_0_normalized(self):                              #a/b > 4 ili a/b < 20
+        if self.con_type == ConstrType.LT:
+            return (self.rhs - self.value) / (self.value + self.rhs)    # (20 - a/b) / (20 + a/b)  primjer a/b = 10
+        else: 
+            return (self.value - self.rhs) / (self.value + self.rhs)    # (a/b - 4) / (4 + a/b) primjer a/b = 5
+
+    @property
+    def value_lt_0_normalized(self):
+        if self.con_type == ConstrType.GT:
+            return (self.value - self.rhs) / (self.value + self.rhs)
+        else: 
+            return (self.rhs - self.value) / (self.value + self.rhs)
 
     @property
     def status(self)->str:          #HOCE LI OVO RADITI ZA PYMOO KOJEM JE self.value_lt_0
@@ -646,16 +660,20 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
                  self.evaluate,self.get_current_sol)            #to su vlastite funkcije ove klase!!!!
             tEnd = time.perf_counter()
             dt = tEnd - tStart
-            ne= self._evalcount
 
-            if self.is_multiobjective:
-                mosols = OptimizationProblemMultipleSolutions(sols[0].num_var,sols[0].num_obj,sols[0].num_con,len(sols))
-                for i in range(len(sols)):
-                    mosols.set_one_solution(i,sols[i])
-                self._opt_output = MultiobjectiveOptimizationOutput(self.opt_algorithm.name,self.name,dt,ne,mosols)
+            #Provjera da optlib (i algoritam nije vratio None)
+            if sols != None:
+                ne= self._evalcount
+                if self.is_multiobjective:
+                    mosols = OptimizationProblemMultipleSolutions(sols[0].num_var,sols[0].num_obj,sols[0].num_con,len(sols))
+                    for i in range(len(sols)):
+                        mosols.set_one_solution(i,sols[i])
+                    self._opt_output = MultiobjectiveOptimizationOutput(self.opt_algorithm.name,self.name,dt,ne,mosols)
+                else:
+                    self._opt_output = SingleobjectiveOptimizationOutput(self.opt_algorithm.name,self.name, dt,ne, sols[-1])
+                self.calculate_quality_measures()
             else:
-                self._opt_output = SingleobjectiveOptimizationOutput(self.opt_algorithm.name,self.name, dt,ne, sols[-1])
-            self.calculate_quality_measures()
+                print(f'Algorithm {self._opt_algorithm.name} on problem {self._name} did not converge!')                
             return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a...
 
     def calculate_quality_measures(self):
@@ -663,6 +681,7 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         if isinstance(oo,MultiobjectiveOptimizationOutput):
             # add all quality measures here
             oo.add_quality_measure('test_quality',42.42)
+            
     def optimize_and_write(self,folder_path:str,x0= None):
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -672,8 +691,15 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
         print(dt_string + " " + self.full_name + " optimization ended")
         path = folder_path
-        self.write_output(path)
-        self.save_pareto_plot(path)
+        try:
+            self.write_output(path)
+        except AttributeError:
+            print('Optimization did not converge!')
+            return False
+        else:
+            self.save_pareto_plot(path)
+            return True
+    
 
     def save_pareto_plot(self,path):
         out = self._opt_output
