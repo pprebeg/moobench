@@ -28,12 +28,10 @@ class MultibjectiveOptimizationComparer(Job):
 
     def _optimize_task(self, op:OptimizationProblem, outfolder:str):
         successful = op.optimize_and_write(outfolder)
-        if successful:
-            return 'Optimization finished:\n'+ op.opt_output.get_info()
-        else:
-            return 'Optimization finished:\n Algorithm did not converge!'
+        return op,successful
 
     def execute(self):
+        solved_ops = []
         dt_string = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
         print(dt_string+' - Job started')
         isExist = os.path.exists(self._out_folder_path)
@@ -44,10 +42,15 @@ class MultibjectiveOptimizationComparer(Job):
             for op in self._ops:
                 futures.append(executor.submit(self._optimize_task, op, self._out_folder_path))
             for future in as_completed(futures):
-                print(future.result())
+                (solved_op,successful) = future.result()
+                if successful:
+                    solved_ops.append(solved_op)
+                    print('Optimization finished:\n' + solved_op.opt_output.get_info())
+                else:
+                    print('Optimization finished:\n Algorithm did not converge: {}!'.format(solved_op.full_name))
 
         quality_indicators_list = []
-        for op in self._ops:
+        for op in solved_ops:
             dict_to_write = {}
             oo = op._opt_output
             prob_name = oo.opt_problem_name
@@ -62,7 +65,7 @@ class MultibjectiveOptimizationComparer(Job):
             #proci sve probleme, iz njih izdvojiti quality indicatore u obliku dictionary-ja, i napraviti listu dictionary-ja
 
         file_path = self._out_folder_path + '\\' + 'quality_indicators.csv'
-        writecsv_listofdicts(self._out_folder_path, quality_indicators_list)
+        writecsv_listofdicts(file_path, quality_indicators_list)
 
         dt_string = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
         print(dt_string + ' - Job ended')
@@ -74,12 +77,15 @@ class MultibjectiveOptimizationComparerFromWrittenResults(MultibjectiveOptimizat
                  ops:List[OptimizationProblem],
                  ref_pareto_front:OptimizationProblemMultipleSolutions):
         super().__init__(name,max_workers,out_folder_path,ops,ref_pareto_front)
+        self._solved_ops = []
 
     def _readresults_or_optimize_task(self, op:OptimizationProblem, outfolder:str):
         op.read_results_or_optimize_and_write(outfolder,None,self._ref_pareto_front)
-        return 'Read results or optimization finished:\n'+ op.opt_output.get_info()
+        successful = True # izmjeniti da bude kao u _optimize_task
+        return op,successful
 
     def execute(self):
+        solved_ops = []
         dt_string = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
         print(dt_string+' - Job started')
         isExist = os.path.exists(self._out_folder_path)
@@ -90,7 +96,12 @@ class MultibjectiveOptimizationComparerFromWrittenResults(MultibjectiveOptimizat
             for op in self._ops:
                 futures.append(executor.submit(self._readresults_or_optimize_task, op, self._out_folder_path))
             for future in as_completed(futures):
-                print(future.result())
+                (solved_op, successful) = future.result()
+                if successful:
+                    solved_ops.append(solved_op)
+                    print('Read results or optimization finished:\n' + solved_op.opt_output.get_info())
+                else:
+                    print('Read results or optimization finished:\n Algorithm did not converge: {}!'.format(solved_op.full_name))
             #
         #metzodu - proc kroz sve op probleme i pripremii podatke... podaci su quality indicatori.. posebni dictionary u Outputu, i vrijeme izvrsavanja
         dt_string = (datetime.now()).strftime("%d/%m/%Y %H:%M:%S")
