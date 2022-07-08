@@ -8,6 +8,8 @@ from utils import readcsv_listofdicts,readcsv_listofstrings
 import time
 from datetime import datetime
 import os
+from jmetal.core.quality_indicator import GenerationalDistance, InvertedGenerationalDistance, EpsilonIndicator, HyperVolume
+
 class ConstrType(Enum): #Enumaratori za kontrolu tijeka programa
     GT = 1
     LT = 2
@@ -255,16 +257,16 @@ class DesignConstraint(DesignCriteria):
     @property
     def value_gt_0_normalized(self):                              #a/b > 4 ili a/b < 20
         if self.con_type == ConstrType.LT:
-            return (self.rhs - self.value) / (self.value + self.rhs)    # (20 - a/b) / (20 + a/b)  primjer a/b = 10
+            return (-self.value + self.rhs) / (self.value + self.rhs)    # (20 - a/b) / (20 + a/b)  primjer a/b = 10
         else: 
             return (self.value - self.rhs) / (self.value + self.rhs)    # (a/b - 4) / (4 + a/b) primjer a/b = 5
 
     @property
     def value_lt_0_normalized(self):
         if self.con_type == ConstrType.GT:
-            return (self.value - self.rhs) / (self.value + self.rhs)
+            return (-self.value + self.rhs) / (self.value + self.rhs)
         else: 
-            return (self.rhs - self.value) / (self.value + self.rhs)
+            return (self.value - self.rhs) / (self.value + self.rhs)
 
     @property
     def status(self)->str:          #HOCE LI OVO RADITI ZA PYMOO KOJEM JE self.value_lt_0
@@ -393,6 +395,11 @@ class OptimizationProblemMultipleSolutions(OptimizationProblemSolution):
 
     def get_ndarray_all_solutions_for_objective(self,iobj:int)->np.ndarray:
             return self._values[:,self.get_obj_ix(iobj)]
+
+    def get_ndarray_all_solutions_for_all_objectives(self)->np.ndarray:
+
+            first_objective_index = self.get_obj_ix(0)
+            return self._values[:, first_objective_index:first_objective_index + self.num_obj]
 
     def set_one_solution(self,isol:int,solution:OptimizationProblemSolution):
         self._values[isol,:] = solution._values[:]
@@ -710,10 +717,37 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             return self.opt_algorithm.sol #prilikom optimize-a vraca konacno rjesenje optimizacije! Zato sto se zapravo pozivom linije sols = self.opt_algorithm.optimize zapravo poziva minimize iz scipy.optimize-a...
 
     def calculate_quality_measures(self,ref_pareto_front:OptimizationProblemMultipleSolutions):
+
+        if ref_pareto_front == None:
+            return
+
         oo = self._opt_output
+        ref_pareto_2Darray = ref_pareto_front.get_ndarray_all_solutions_for_all_objectives()
+        solutions = oo._solutions.get_ndarray_all_solutions_for_all_objectives()
+
+        ref_point = []
+        for i in range(oo.num_obj):
+            ref_point.append(ref_pareto_2Darray[:,i].max()*1.1)
+
+        #INSTANTIATING QUALITY MEASURES
+        GD = GenerationalDistance(ref_pareto_2Darray)
+        IGD = InvertedGenerationalDistance(ref_pareto_2Darray)
+        HV = HyperVolume(ref_point)
+        Eps = EpsilonIndicator(ref_pareto_2Darray)
+
+        #CALCULATION OF ALL QUALITY MEASURES
+        gd = GD.compute(solutions)
+        igd = IGD.compute(solutions)
+        hv = HV.compute(solutions)
+        eps = Eps.compute(solutions)
+
+
         if isinstance(oo,MultiobjectiveOptimizationOutput):
             # add all quality measures here
-            oo.add_quality_measure('test_quality',42.42)
+            oo.add_quality_measure('GD',gd)
+            oo.add_quality_measure('IGD',igd)
+            oo.add_quality_measure('HyperVolume', hv)
+            oo.add_quality_measure('Epsilon', eps)
 
     def optimize_and_write(self,folder_path:str,x0= None,
                            ref_pareto_front:OptimizationProblemMultipleSolutions = None):
@@ -749,7 +783,8 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
             self.write_output(folder_path)
         else:
             self._opt_output = read_opt_output
-        self.calculate_quality_measures(ref_pareto_front)
+
+        #self.calculate_quality_measures(ref_pareto_front)
         self.save_pareto_plot(folder_path,ref_pareto_front)
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")

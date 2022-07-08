@@ -375,6 +375,10 @@ class Beam():
         
         return self.max_s/self.prop.mat.sigmadop
 
+    def get_stress(self):
+
+        return self.max_s
+
     def length_calc(self,node1:Node,node2:Node) -> float:
 
         node_vector = node2.coords-node1.coords

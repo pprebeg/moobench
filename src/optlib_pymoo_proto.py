@@ -59,7 +59,7 @@ class WrappedPymooProblem(ElementwiseProblem):
             flist.append(solution.get_obj_value(i))               #numpy lista rjesenja
 
         for i in range(self.n_constr):
-            glist.append(self._cons[i].get_con_value())
+            glist.append(self._cons[i].get_con_value_normalized())
 
         out['F']=np.array(flist)
         
@@ -165,9 +165,7 @@ class PymooOptimizationAlgorithm(OptimizationAlgorithm):
             pymoocon = PymooConstraint(con)
             pymoo_cons.append(pymoocon)
 
-        #Algorithm
-        alg = self._algorithm #Instancira se u __init__
-
+    
         problem=WrappedPymooProblem(desvars, objectives, pymoo_cons, xl, xu, callback_evaluate, callback_get_current_solution) #ovaj callback_evaluate
 
         return problem

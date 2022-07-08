@@ -12,7 +12,7 @@ class Analiza_okvira_model(AnalysisExecutor):
     
     def __init__(self,model):
         super().__init__()
-        self.model=model
+        self.model = model
         
     def analyze(self):
 
@@ -35,7 +35,8 @@ class Analiza_okvira_OptimizationProblem(OptimizationProblem):
         #AnalysisExecutor
         am=Analiza_okvira_model(model)
         self.add_analysis_executor(am)
-        
+
+        print(model)
         #DIZAJNERSKE VARIJABLE
 
         sections_to_opt=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]  
@@ -73,7 +74,7 @@ class Analiza_okvira_OptimizationProblem(OptimizationProblem):
         #NAPREZANJE
         i=0
         for beam in model.beams:
-            self.add_constraint(DesignConstraint('stress'+str(i),CallbackGetConnector(beam.get_stress_over_limit), 1, ConstrType.LT))
+            self.add_constraint(DesignConstraint('stress'+str(i),CallbackGetConnector(beam.get_stress), beam.prop.mat.sigmadop, ConstrType.LT))
             i+=1
 
         #DIMENZIJE
@@ -95,30 +96,32 @@ class Analiza_okvira_OptimizationProblem(OptimizationProblem):
                         
                         name1='bfb'+str(section.ID)
                         name2='tfb'+str(section.ID)
-                        self.add_constraint(DesignConstraint('g'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),4))
+                        self.add_constraint(DesignConstraint('g_bfb_tfb'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),4))
                         i+=1
-                        self.add_constraint(DesignConstraint('g'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),20, ConstrType.LT))
+                        self.add_constraint(DesignConstraint('g_bfb_tfb'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),20, ConstrType.LT))
                         i+=1
                                           
                         name1='hw'+str(section.ID)
                         name2='tw'+str(section.ID)
 ##                        self.add_constraint(DesignConstraint('g'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),0))
 ##                        i+=1
-                        self.add_constraint(DesignConstraint('g'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),90, ConstrType.LT))
+                        self.add_constraint(DesignConstraint('g_hw_tw'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),90, ConstrType.LT))
                         i+=1
 
                         name1='bfb'+str(section.ID)
                         name2='hw'+str(section.ID)
-                        self.add_constraint(DesignConstraint('g'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),0.2))
+                        self.add_constraint(DesignConstraint('g_bfb_hw'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),0.2))
                         i+=1
-                        self.add_constraint(DesignConstraint('g'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),0.5, ConstrType.LT))
+                        self.add_constraint(DesignConstraint('g_bfb_hw'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),0.5, ConstrType.LT))
                         i+=1
 
                         name1='tfb'+str(section.ID)
                         name2='tw'+str(section.ID)
-                        self.add_constraint(DesignConstraint('g'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),1))
+                        self.add_constraint(DesignConstraint('g_tfb_tw'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),1))
                         i+=1
-                        self.add_constraint(DesignConstraint('g'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),3, ConstrType.LT))
+                        self.add_constraint(DesignConstraint('g_tfb_tw'+str(i),RatioDesignConnector(dictionary[name1],dictionary[name2]),3, ConstrType.LT))
                         i+=1
 
+        m_upper = 4.331567857152000 * 10 ** 13 * 1.20
 
+        self.add_constraint(DesignConstraint('g_mass_uper'+str(i), CallbackGetConnector(model.get_mass),m_upper,  ConstrType.LT))
