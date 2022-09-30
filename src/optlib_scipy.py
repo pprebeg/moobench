@@ -114,11 +114,11 @@ class ScipyObjective(ScipyCriteria):    #objective nasljedjuje kriterij - funkci
 
 
 class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
-    def __init__(self,name:str, opt_ctrl:Dict ): #opt_ctrl - sadrži sve potrebno za kontrolu algoritma iz Scipy modula - u obliku key-value parova
+    def __init__(self,name:str,method:str, opt_ctrl:Dict ):
         super().__init__(name)
-        self._method = opt_ctrl.get('method') #dobivanje iz key-value paira, pošalješ kljuc 'method' i dobijes vrijednost
+        self._method = method
         if self._method is None:
-            self._method = 'SLSQP'  #defaultni je SLSQP, slijedi inicijalizacija sveg što se šalje pri pozivanju minimize funkcije
+            self._method = 'SLSQP'  #default
         self._options = {}
         self._sol = None
         maxiter = opt_ctrl.get('maxiter')

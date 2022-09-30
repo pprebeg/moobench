@@ -37,7 +37,7 @@ if __name__ == '__main__': #ako smo pokrenuli baš ovaj fajl, a ne ga pozvali iz
     op.add_constraint(DesignConstraint('g3',NdArrayGetConnector(am.outarray, 3), -2.0))
     op.add_analysis_executor(am)    #analysis executor je zaravo model, gdje su zapisane funkcije cilja, koje se sa metodom analyize izracunavaju.. To je prilicsno VAZNO za kompatibilnost svega. 
     alg_ctrl = {'pop_size':50}  #ovo je dictionary koji se šalje konstruktoru ScipyOptimizationAlgorithm-a.. to znaci da su ostale postavke defaultne.. 
-    op.opt_algorithm = PymooOptimizationAlgorithm('nsga2',alg_ctrl=alg_ctrl)         #postavljanje propertyja opt_algorithm (set metoda) i pritom spremanje objekta klase ScipyOptimizationAlgorithm
+    op.opt_algorithm = PymooOptimizationAlgorithm('nsga2-p50','nsga2',alg_ctrl=alg_ctrl)         #postavljanje propertyja opt_algorithm (set metoda) i pritom spremanje objekta klase ScipyOptimizationAlgorithm
     op.termination=('time', '00:00:05')
     res = op.optimize([0,0])    #NEPOTREBNO ZA PYMOO - pozivanje optimize! ovo [2,0] su pocetni x0.. op je tipa OptimizationProblem() iz optbase.py 
     print(res)                  #printanje rezultata - solutions iz optlib_scipyja se prenosi u optbase što završava ovdje 

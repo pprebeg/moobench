@@ -538,8 +538,15 @@ class SingleobjectiveOptimizationOutput(OptimizationOutput):
     def get_solutions_string_list(self) -> List[str]:
         return [self._solution.write_to_csvline() + '\n']
 
-    def save_output(self, file_path,fieldnames):
-        pass
+    def save_output(self, folder_path,fieldnames):
+        file_path = folder_path + '\\' + self.full_name
+        sols_file_path = file_path + '_s.csv'
+        file_path += '.csv'
+        sol_lines = self.get_solutions_string_list()
+        writecsv_listofstrings(sols_file_path, fieldnames, sol_lines)
+        dd = self.get_basic_data_dict()
+        dd['sols_file_path'] = sols_file_path
+        writecsv_dictionary(file_path, dd)
     @property
     def num_var(self):
         return self._solution.num_var

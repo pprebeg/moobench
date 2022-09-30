@@ -17,6 +17,7 @@ class EX_16_4_AnayisisModel(SimpleInputOutputArrayAnalysisExecutor):
         return AnalysisResultType.OK
 
 class EX_16_4_OptimizationProblem(OptimizationProblem):
+    #theoretical solution (1.4 ,1.7)
     def __init__(self,name=''):
         if name == '':
             name = 'EX_16_4'
