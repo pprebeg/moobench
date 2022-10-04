@@ -59,7 +59,7 @@ class WrappedPymooProblem(ElementwiseProblem):
             flist.append(solution.get_obj_value(i))               #numpy lista rjesenja
 
         for i in range(self.n_constr):
-            glist.append(self._cons[i].get_con_value_normalized())
+            glist.append(self._cons[i].get_con_value())
 
         out['F']=np.array(flist)
         
@@ -295,17 +295,25 @@ class PymooOptimizationAlgorithmMulti(PymooOptimizationAlgorithm):
                 return None
             
         solutions:List[OptimizationProblemSolution] = []
-        
-        for index, x_individual in enumerate(x):
-            out={}
-            out['F'] = sol.F[index]
-            out['G'] = sol.G[index]
-            #print(x_individual)
-            problem._evaluate(x_individual,out)     #ovo sprema OptimizationProblemSolution u OptimizationProblem
-            opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku. ili izraditi copy objekta - funckionalnost na razini pymoo_proto.. ili u optbase prosiriti poziv ovog optimize-a sa jos jednim callbackom koji bi pozivao add_
-            solutions.append(deepcopy(opt_sol))   #append adds a reference only! in solutions, there are just pointers to opt_sol! it should actually make copies that are independent one of another, so that it doesn't change when opt_sol change                
-    
-        return solutions  
+        if x.ndim ==2:
+            for index in range(x.shape[0]):
+                x_individual=x[index]
+                out={}
+                out['F'] = sol.F[index]
+                out['G'] = sol.G[index]
+                #print(x_individual)
+                problem._evaluate(x_individual,out)     #ovo sprema OptimizationProblemSolution u OptimizationProblem
+                opt_sol:OptimizationProblemSolution = callback_get_current_solution() #vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku. ili izraditi copy objekta - funckionalnost na razini pymoo_proto.. ili u optbase prosiriti poziv ovog optimize-a sa jos jednim callbackom koji bi pozivao add_
+                solutions.append(deepcopy(opt_sol))   #append adds a reference only! in solutions, there are just pointers to opt_sol! it should actually make copies that are independent one of another, so that it doesn't change when opt_sol change
+        else:
+            out = {}
+            out['F'] = sol.F
+            out['G'] = sol.G
+            # print(x_individual)
+            problem._evaluate(x, out)  # ovo sprema OptimizationProblemSolution u OptimizationProblem
+            opt_sol: OptimizationProblemSolution = callback_get_current_solution()  # vraca OptimizationProblemSolution koji je optbase objekt za cuvanje rjesenja u numerickom obliku. ili izraditi copy objekta - funckionalnost na razini pymoo_proto.. ili u optbase prosiriti poziv ovog optimize-a sa jos jednim callbackom koji bi pozivao add_
+            solutions.append(deepcopy(opt_sol))
+        return solutions
 
 class PymooOptimizationAlgorithmSingle(PymooOptimizationAlgorithm):
 

@@ -4,7 +4,7 @@ from enum import Enum
 from typing import List, Dict,TypeVar
 from copy import copy, deepcopy
 from utils import writecsv_listofstrings,readcsv_listofstrings,writecsv_dictionary,save_pareto_plot,save_pareto_plot_wr
-from utils import readcsv_listofdicts,readcsv_listofstrings
+from utils import readcsv_listofdicts,readcsv_listofstrings,print_listofstrings,print_dict
 import time
 from datetime import datetime
 import os
@@ -256,17 +256,19 @@ class DesignConstraint(DesignCriteria):
     
     @property
     def value_gt_0_normalized(self):                              #a/b > 4 ili a/b < 20
-        if self.con_type == ConstrType.LT:
-            return (-self.value + self.rhs) / (self.value + self.rhs)    # (20 - a/b) / (20 + a/b)  primjer a/b = 10
-        else: 
-            return (self.value - self.rhs) / (self.value + self.rhs)    # (a/b - 4) / (4 + a/b) primjer a/b = 5
+        arhs = np.abs(self.rhs)
+        if arhs > 0.001:
+            return self.value_gt_0 / arhs
+        else:
+            return self.value_gt_0
 
     @property
     def value_lt_0_normalized(self):
-        if self.con_type == ConstrType.GT:
-            return (-self.value + self.rhs) / (self.value + self.rhs)
-        else: 
-            return (self.value - self.rhs) / (self.value + self.rhs)
+        arhs = np.abs(self.rhs)
+        if arhs > 0.001:
+            return self.value_lt_0/arhs
+        else:
+            return self.value_lt_0
 
     @property
     def status(self)->str:          #HOCE LI OVO RADITI ZA PYMOO KOJEM JE self.value_lt_0
@@ -502,6 +504,10 @@ class OptimizationOutput(ABC):
     def save_output(self,file_path,fieldnames):
         pass
 
+    @abstractmethod
+    def print_output(self,fieldnames):
+        pass
+
     @classmethod
     def factory_from_out_file(cls,out_file_path):
         pass
@@ -547,6 +553,15 @@ class SingleobjectiveOptimizationOutput(OptimizationOutput):
         dd = self.get_basic_data_dict()
         dd['sols_file_path'] = sols_file_path
         writecsv_dictionary(file_path, dd)
+
+    def print_output(self,fieldnames):
+        sol_lines = self.get_solutions_string_list()
+        dd = self.get_basic_data_dict()
+        print('******** Optimization output ********')
+        print_dict(dd)
+        print_listofstrings(fieldnames,sol_lines)
+        print('*************************************')
+
     @property
     def num_var(self):
         return self._solution.num_var
@@ -633,6 +648,16 @@ class MultiobjectiveOptimizationOutput(OptimizationOutput):
         dd.update(self._quality_measures)
         dd['sols_file_path'] = sols_file_path
         writecsv_dictionary(file_path,dd)
+
+    def print_output(self,fieldnames):
+        sol_lines = self.get_solutions_string_list()
+        dd = self.get_basic_data_dict()
+        dd['num_sol'] = self.num_sol
+        dd.update(self._quality_measures)
+        print('******** Optimization output ********')
+        print_dict(dd)
+        print_listofstrings(fieldnames, sol_lines)
+        print('*************************************')
 
     def append_output_data_dictionary(self,output_data:Dict[str,str]):
         pass
@@ -813,6 +838,10 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
     def write_output(self, path):
         fieldnames = self.get_dvobjcon_names_line()
         self._opt_output.save_output(path,fieldnames)
+
+    def print_output(self):
+        fieldnames = self.get_dvobjcon_names_line()
+        self._opt_output.print_output(fieldnames)
 
     def read_output(self,file_path):
         if self.is_multiobjective:

@@ -17,14 +17,13 @@ class EX_16_4_AnayisisModel(SimpleInputOutputArrayAnalysisExecutor):
         return AnalysisResultType.OK
 
 class EX_16_4_OptimizationProblem(OptimizationProblem):
-    #theoretical solution (1.4 ,1.7)
     def __init__(self,name=''):
         if name == '':
             name = 'EX_16_4'
         super().__init__(name)
         am = EX_16_4_AnayisisModel()
-        self.add_design_variable(DesignVariable('x1', NdArrayGetSetConnector(am.inarray, 0), 0.0,None))
-        self.add_design_variable(DesignVariable('x2', NdArrayGetSetConnector(am.inarray, 1), 0.0,None))
+        self.add_design_variable(DesignVariable('x1', NdArrayGetSetConnector(am.inarray, 0), 0.0,5.0))
+        self.add_design_variable(DesignVariable('x2', NdArrayGetSetConnector(am.inarray, 1), 0.0,5.0))
         self.add_objective(DesignObjective('obj', NdArrayGetConnector(am.outarray,0)))
         self.add_constraint(DesignConstraint('g1', NdArrayGetConnector(am.outarray, 1), -2.0))
         self.add_constraint(DesignConstraint('g2', NdArrayGetConnector(am.outarray, 2), -6.0))

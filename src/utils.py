@@ -39,6 +39,14 @@ def readcsv_listofdicts(filepath:str):
             listofdicts.append(row)
     return listofdicts
 
+def print_dict(dict:Dict):
+    for key,value in dict.items():
+        print(key,': ',value)
+def print_listofstrings(fieldnames:str,listofstrings: List[str]):
+    print(fieldnames.strip())
+    for line in listofstrings:
+        print(line.strip())
+
 def save_pareto_plot(folder_path:str,title:str,x:np.ndarray,y:np.ndarray,x_name:str, y_name:str):
     fig = plt.figure()
     ax = plt.gca()
