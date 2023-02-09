@@ -1,8 +1,7 @@
-from ex_16_4_optimization_problem import *
-from Frame_problem import Analiza_okvira_OptimizationProblem
-from osyczka2 import Osyczka2_OptimizationProblem
-from concurrent.futures import ProcessPoolExecutor,Future
-from typing import List, Dict
+from optprob.ex_16_4_optimization_problem import *
+from optprob.Frame_problem import Analiza_okvira_OptimizationProblem
+from optprob.osyczka2 import Osyczka2_OptimizationProblem
+from typing import List
 from jobbase import MultibjectiveOptimizationComparer,MultibjectiveOptimizationComparerFromWrittenResults
 from optlib_pymoo_proto import PymooOptimizationAlgorithmMulti
 from optlib_jmetalpy_proto import jmetalOptimizationAlgorithmMulti

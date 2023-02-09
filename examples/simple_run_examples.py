@@ -1,8 +1,5 @@
-from ex_16_4_optimization_problem import *
-from osyczka2 import Osyczka2_OptimizationProblem
-from typing import List, Dict
-from optlib_pymoo_proto import PymooOptimizationAlgorithmMulti, PymooOptimizationAlgorithmSingle
-from optlib_jmetalpy_proto import jmetalOptimizationAlgorithmMulti
+from optprob.ex_16_4_optimization_problem import *
+from optlib_pymoo_proto import PymooOptimizationAlgorithmSingle
 from optlib_scipy import ScipyOptimizationAlgorithm
 import os
 
