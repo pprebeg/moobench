@@ -105,11 +105,12 @@ class SimpleInputOutputArrayAnalysisExecutor(AnalysisExecutor): #jednostavni tip
 
 
 class DesignVariable(ABC):
-    def __init__(self,name,connector:BasicGetSetConnector,lb=None,ub=None):
+    def __init__(self,name,connector:BasicGetSetConnector,lb=None,ub=None,do_norm = False):
         self._name = name
         self._origin:BasicGetSetConnector = connector
         self._lb = lb
         self._ub = ub
+        self._do_norm = do_norm
         self._ndarray_connector: NdArrayGetConnector = None
         self._use_ndarray_connector: bool = False               #u optimize metodi OptimizationProblem, zove se vlastita metoda klase _init_opt_problem.. ona zove metodu - _set_ndarray_connector_to_components
 
@@ -146,9 +147,12 @@ class DesignVariable(ABC):
     @property
     def value(self):                                    #vrijednost dizajnerske varijable - ako se koristi NdArrayConnector - vrijednost tog konektora. Ako ne, onda vrijednost BasicGetSetConnectora. 
         if self._use_ndarray_connector:
-            return self._ndarray_connector.value
+            ret_val =  self._ndarray_connector.value
         else:
-            return self._origin.value
+            ret_val =  self._origin.value
+        if self._do_norm:
+            ret_val = self.normalize(ret_val)
+        return ret_val
 
     @property
     def origin_value(self) -> float:    #kao da zelis dobiti vrijednost konektora - DesignVariable.origin_value.value (to je vrijednost u konektoru)
@@ -156,10 +160,16 @@ class DesignVariable(ABC):
 
     @value.setter
     def value(self,value):
-        self._origin.value = value
+        if self._do_norm:
+            self._origin.value = self.denormalize(value)
+        else:
+            self._origin.value = value
 
     def get_bounds(self):
-        return self.lower_bound, self.upper_bound #ovo vraca tuple
+        if self._do_norm:
+            return 0.0,1.0
+        else:
+            return self.lower_bound, self.upper_bound #ovo vraca tuple
 
     @property
     def status(self):
@@ -178,6 +188,12 @@ class DesignVariable(ABC):
 
     def get_info(self):
         return self.name+' = '+ str(self.origin_value)+self.status
+
+    def normalize(self,value):
+        return (value-self._lb)/(self._ub-self._lb)
+
+    def denormalize(self,value):
+        return self._lb + value*(self._ub - self._lb)
 
 
 class DesignCriteria(ABC):                                  #ima smisla naziv - kriteriji za dizajn su i ogranicenja i ciljevi! Tako je ovo apstraktna klasa. 
@@ -841,7 +857,10 @@ class OptimizationProblem(ABC):                 #ovo je vrlo vazna klasa gdje je
 
     def print_output(self):
         fieldnames = self.get_dvobjcon_names_line()
-        self._opt_output.print_output(fieldnames)
+        if self._opt_output is not None:
+            self._opt_output.print_output(fieldnames)
+        else:
+            print('Optimization output is empty! Optimzation algorithm didn\'t returned results')
 
     def read_output(self,file_path):
         if self.is_multiobjective:

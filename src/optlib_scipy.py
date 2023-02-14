@@ -26,7 +26,7 @@ if not is_optbase_imported: #not False je true - dakle ako je false, nije uvezen
 
 class ScipyModelAnalysis():
     def __init__(self,calback_analyse):
-        self._rtol = 1e-10                      #postavljanje tolerancija za granice izgleda, vidi klasu DesignConstraint, property status
+        self._rtol = 1e-17                      #postavljanje tolerancija za granice izgleda, vidi klasu DesignConstraint, property status
         self._atol = self._rtol * 1e-3
         self._xlast:np.ndarray = None           #to je samo najavljeno numpy niz.. ali je None
         self._calback_analyse_method = calback_analyse #funkcija ili metoda koja se kao callback salje 
@@ -35,6 +35,7 @@ class ScipyModelAnalysis():
         self._xlast: np.ndarray = np.ones(num_var)*np.random.random() #random odabir zadnjeg x-a.. no mislim da to nije pocetni x, vec neki x u odnosu na koji ce se prvi put ova metoda koristiti _is_new_x_vals
 
     def _is_new_x_vals(self,x:np.ndarray):
+        return True
         if np.allclose(x,self._xlast,rtol=self._rtol, atol=self._atol): #zanimljiva funkcija koja provjerava jesu li se promijenile design varijable
             return False
         return True
@@ -121,10 +122,8 @@ class ScipyOptimizationAlgorithm(OptimizationAlgorithm):
             self._method = 'SLSQP'  #default
         self._options = {}
         self._sol = None
-        maxiter = opt_ctrl.get('maxiter')
-        if maxiter is None:
-            maxiter = 10000
-        self._options['maxiter'] = maxiter
+        for key,value in opt_ctrl.items():
+            self._options[key] = value
 
     @property
     def sol(self):
