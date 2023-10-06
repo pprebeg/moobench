@@ -1,20 +1,18 @@
 try:
-    from optbase import *
-    from optlib_scipy import ScipyOptimizationAlgorithm
+    from moobench.optbase import *
+    from moobench.optlib_scipy import ScipyOptimizationAlgorithm
 except ImportError:
+    print('Error: moobench library not installed or not found!')
     pass
 
 
-class Osyczka2_AnayisisModel(SimpleInputOutputArrayAnalysisExecutor):  
+class OSY2_AnMod(SimpleInputOutputArrayAnalysisExecutor):
     # 6 varijabli, 6 ogranicenja, 2 cilja, 
 
     def __init__(self):
-        super().__init__(6,8)  
-        # ovo tu treba iz Analiza okvira možda pomoću posebnih funkcija dohvatiti.. 
-        # Npr. get_number_of_design_variables, get_number_o itd. ako bude potrebno uopće za taj Analysis Executor.
+        super().__init__(6,8)
 
-    def analyze(self):  # u ovaj analyize (treba pravopisno stvari promijeniti) definiramo izgleda funkcije cilja, inarray - ulazni niz, outarray, izlazni niz, funckije cilja i vrijednosti ogranicenja
-        #variables
+    def analyze(self):
         x1 = self.inarray[0]
         x2 = self.inarray[1]
         x3 = self.inarray[2]
@@ -36,12 +34,12 @@ class Osyczka2_AnayisisModel(SimpleInputOutputArrayAnalysisExecutor):
 
         return AnalysisResultType.OK
 
-class Osyczka2_OptimizationProblem(OptimizationProblem):
+class OSY2_OptProb(OptimizationProblem):
     def __init__(self,name=''):
         if name == '':
             name = 'Osyczka2'
         super().__init__(name)
-        am = Osyczka2_AnayisisModel()
+        am = OSY2_AnMod()
         # variables
         self.add_design_variable(DesignVariable('x1', NdArrayGetSetConnector(am.inarray, 0), 0.0, 10.0))
         self.add_design_variable(DesignVariable('x2', NdArrayGetSetConnector(am.inarray, 1), 0.0, 10.0))

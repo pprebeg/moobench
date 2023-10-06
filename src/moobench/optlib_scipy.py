@@ -9,9 +9,9 @@ except ImportError:
     print('Import error: Scipy not installed')
 is_optbase_imported = False                     #varijabla is_optbase_imported, importiranje modula optbase
 try:                                            #pojedinacno importanje je odlicno jer ces dobiti gresku ako koja vazna klasa nije uvezena!
-    from optbase import ConstrType, AnalysisResultType, AnalysisExecutor
-    from optbase import DesignVariable, DesignObjective, DesignConstraint, OptimizationAlgorithm
-    from optbase import DesignCriteria,OptimizationAlgorithm, OptimizationProblemSolution
+    from moobench.optbase import ConstrType, AnalysisResultType, AnalysisExecutor
+    from moobench.optbase import DesignVariable, DesignObjective, DesignConstraint, OptimizationAlgorithm
+    from moobench.optbase import DesignCriteria,OptimizationAlgorithm, OptimizationProblemSolution
     is_optbase_imported = True
 except ImportError:
     pass

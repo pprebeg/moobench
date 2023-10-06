@@ -1,11 +1,10 @@
 try:
-    from optbase import *
-    from optlib_scipy import ScipyOptimizationAlgorithm
+    from moobench.optbase import *
+    from moobench.optlib_scipy import ScipyOptimizationAlgorithm
 except ImportError:
     pass
 
-
-class EX_16_4_AnayisisModel(SimpleInputOutputArrayAnalysisExecutor):
+class EX_16_4_AnMod(SimpleInputOutputArrayAnalysisExecutor):
     def __init__(self):
         super().__init__(2,4)
 
@@ -16,12 +15,12 @@ class EX_16_4_AnayisisModel(SimpleInputOutputArrayAnalysisExecutor):
         self.outarray[3] = -self.inarray[0] + 2 * self.inarray[1]
         return AnalysisResultType.OK
 
-class EX_16_4_OptimizationProblem(OptimizationProblem):
+class EX_16_4_OptProb(OptimizationProblem):
     def __init__(self,name=''):
         if name == '':
             name = 'EX_16_4'
         super().__init__(name)
-        am = EX_16_4_AnayisisModel()
+        am = EX_16_4_AnMod()
         self.add_design_variable(DesignVariable('x1', NdArrayGetSetConnector(am.inarray, 0), 0.0,5.0))
         self.add_design_variable(DesignVariable('x2', NdArrayGetSetConnector(am.inarray, 1), 0.0,5.0))
         self.add_objective(DesignObjective('obj', NdArrayGetConnector(am.outarray,0)))

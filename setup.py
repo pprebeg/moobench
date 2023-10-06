@@ -13,5 +13,5 @@ setup(
     license='MIT',
     author='Pero Prebeg',
     author_email='pero.prebeg@fsb.hr',
-    description='Benchmark problems for multiobjective optimization with constraints',
+    description='Benchmarking multiobjective optimization with constraints',
 )

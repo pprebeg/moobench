@@ -1,12 +1,12 @@
 from abc import ABC,abstractmethod
 from typing import List,Dict
-from optbase import OptimizationProblem,OptimizationProblemMultipleSolutions
+from moobench.optbase import OptimizationProblem,OptimizationProblemMultipleSolutions
 from concurrent.futures import ProcessPoolExecutor,as_completed,Future
 import numpy as np
 from datetime import datetime
 from os.path import dirname
 import os
-from utils import writecsv_listofdicts
+from moobench.utils import writecsv_listofdicts
 
 class Job:
     def __init__(self, name):

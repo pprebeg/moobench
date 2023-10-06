@@ -3,8 +3,8 @@ import numpy as np
 from enum import Enum
 from typing import List, Dict,TypeVar
 from copy import copy, deepcopy
-from utils import writecsv_listofstrings,readcsv_listofstrings,writecsv_dictionary,save_pareto_plot,save_pareto_plot_wr
-from utils import readcsv_listofdicts,readcsv_listofstrings,print_listofstrings,print_dict
+from moobench.utils import writecsv_listofstrings,readcsv_listofstrings,writecsv_dictionary,save_pareto_plot,save_pareto_plot_wr
+from moobench.utils import readcsv_listofdicts,readcsv_listofstrings,print_listofstrings,print_dict
 import time
 from datetime import datetime
 import os

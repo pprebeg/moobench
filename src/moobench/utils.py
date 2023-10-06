@@ -1,8 +1,13 @@
 import csv
 from typing import List,Dict
-import matplotlib.pyplot as plt
+
 import numpy as np
 import os
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    print('Error: matplotlib.pyplot library not installed or not found!')
+    pass
 
 def writecsv_listofdicts(filepath:str,listofdicts:List[Dict]):
     with open(filepath, 'w', newline='') as csvfile:
