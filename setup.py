@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='moobench',
-    version='0.1',
+    version='0.2',
     packages=[''],
     package_dir={'': 'src'},
     install_requires=[
