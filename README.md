@@ -8,8 +8,6 @@ Pero Prebeg
 navigate to moobench dir and execute:  
 pip install -e .  
 (there is the dot at the end of the line!)
-## How to use  
-import optbase  
-import jobbase  
-import optlib_scipy  
-import optlib_pymoo_proto
+## Examples  
+Examples of usage can be found in mcdo repository  
+https://github.com/pprebeg/mcdo
